@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>手写大病历</title>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
+        .container { display: flex; gap: 20px; max-width: 1400px; margin: 0 auto; }
+        .control-panel { flex: 1; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .preview-panel { flex: 2; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+        input, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        textarea { height: 120px; resize: vertical; }
+        .slider-container { display: flex; align-items: center; gap: 10px; }
+        .slider-container input[type="range"] { flex: 1; }
+        .slider-value { min-width: 40px; font-weight: bold; }
+        button { background: #007cba; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #005a87; }
+        .preview-frame { width: 100%; height: 600px; border: 1px solid #ddd; border-radius: 4px; }
+
+        .tab-buttons { display: flex; border-bottom: 1px solid #ddd; margin-bottom: 10px; }
+        .tab-button { padding: 10px 20px; cursor: pointer; border: none; background: #eee; border-radius: 4px 4px 0 0; }
+        .tab-button.active { background: #007cba; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+        <!-- 左侧控制面板 -->
+
+    <div class="control-panel">
+        <h2>手写大病历</h2>
+
+        <!-- 标签按钮 -->
+        <div class="tab-buttons">
+            <button class="tab-button active" onclick="switchTab('basic')">基本信息</button>
+            <button class="tab-button" onclick="switchTab('text')">文本设置</button>
+            <button class="tab-button" onclick="switchTab('effects')">手写效果</button>
+            <button class="tab-button" onclick="switchTab('fields')">字段位置</button>
+        </div>
+
+        <!-- 基本信息 -->
+        <div id="basic" class="tab-content active">
+            <div class="form-group">
+                <label>病区：</label>
+                <input type="text" id="病区">
+                <label>姓名：</label>
+                <input type="text" id="姓名">
+                <label>床号：</label>
+                <input type="text" id="床号">
+                <label>住院号：</label>
+                <input type="text" id="住院号">
+            </div>
+
+            <div class="form-group">
+                <label>文本内容：</label>
+                <textarea id="text_content" placeholder="请输入文本内容"></textarea>
+            </div>
+        </div>
+
+        <!-- 文本设置 -->
+        <div id="text" class="tab-content">
+            <div class="form-group">
+                <label>字体大小：</label>
+                <div class="slider-container">
+                    <input type="range" id="font_size" min="8" max="30" value="15">
+                    <span id="font_size_value">15</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>起始 X 坐标：</label>
+                <div class="slider-container">
+                    <input type="range" id="start_x" min="0" max="500" value="64">
+                    <span id="start_x_value">64</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>起始 Y 坐标：</label>
+                <div class="slider-container">
+                    <input type="range" id="start_y" min="0" max="800" value="661">
+                    <span id="start_y_value">661</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>行间距：</label>
+                <div class="slider-container">
+                    <input type="range" id="line_height" min="10" max="50" value="30">
+                    <span id="line_height_value">30</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 手写效果设置 -->
+        <div id="effects" class="tab-content">
+            <div class="form-group">
+                <label>行抖动（上下浮动）：</label>
+                <div class="slider-container">
+                    <input type="range" id="line_jitter" min="0" max="5" value="3">
+                    <span id="line_jitter_value">3</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>字抖动（左右浮动）：</label>
+                <div class="slider-container">
+                    <input type="range" id="char_jitter" min="0" max="5" value="2">
+                    <span id="char_jitter_value">2</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 字段位置 -->
+        <div id="fields" class="tab-content">
+            <div class="form-group">
+                <label>病区位置</label>
+                X:<input type="number" id="病区_x" value="110"> Y:<input type="number" id="病区_y" value="694">
+            </div>
+            <div class="form-group">
+                <label>姓名位置</label>
+                X:<input type="number" id="姓名_x" value="190"> Y:<input type="number" id="姓名_y" value="694">
+            </div>
+            <div class="form-group">
+                <label>床号位置</label>
+                X:<input type="number" id="床号_x" value="280"> Y:<input type="number" id="床号_y" value="694">
+            </div>
+            <div class="form-group">
+                <label>住院号位置</label>
+                X:<input type="number" id="住院号_x" value="450"> Y:<input type="number" id="住院号_y" value="694">
+            </div>
+        </div>
+
+        <button onclick="generatePreview()">更新预览</button>
+        <button onclick="generatePDF()" style="background:#28a745;">生成 PDF</button>
+
+        <div id="downloadLink" style="margin-top:10px;"></div>
+    </div>
+
+    <!-- 右侧预览 -->
+    <div class="preview-panel">
+        <h2>实时预览</h2>
+        <iframe class="preview-frame" id="previewFrame"></iframe>
+    </div>
+
+</div>
+
+<script>
+function switchTab(id){
+    document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.target.classList.add('active');
+}
+
+function getSettings(){
+    return {
+        font_size: Number(font_size.value),
+        start_x: Number(start_x.value),
+        start_y: Number(start_y.value),
+        line_height: Number(line_height.value),
+        line_jitter: Number(line_jitter.value),
+        char_jitter: Number(char_jitter.value),
+        fields:{
+            '病区':{x:Number(病区_x.value), y:Number(病区_y.value)},
+            '姓名':{x:Number(姓名_x.value), y:Number(姓名_y.value)},
+            '床号':{x:Number(床号_x.value), y:Number(床号_y.value)},
+            '住院号':{x:Number(住院号_x.value), y:Number(住院号_y.value)}
+        }
+    };
+}
+
+function getFields(){
+    return {
+        '病区': 病区.value,
+        '姓名': 姓名.value,
+        '床号': 床号.value,
+        '住院号': 住院号.value
+    };
+}
+
+async function generatePreview(){
+    const text = text_content.value;
+    if(!text){ alert("请输入文本内容"); return; }
+
+    const res = await fetch('/preview',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({text, fields:getFields(), settings:getSettings()})
+    });
+
+    const data = await res.json();
+    if(data.success){
+        previewFrame.src = data.preview_url + "?t=" + Date.now();
+    }
+}
+
+async function generatePDF(){
+    const text = text_content.value;
+    if(!text){ alert("请输入文本内容"); return; }
+
+    const res = await fetch('/generate',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({text, fields:getFields(), settings:getSettings()})
+    });
+
+    const data = await res.json();
+    if(data.success){
+        downloadLink.innerHTML = `<a href="${data.download_url}" target="_blank">📥 下载 PDF</a>`;
+    }
+}
+// ---------- 自动保存 & 恢复功能 ----------
+
+// 所有需要监听变化的输入类型
+const INPUT_SELECTOR = 'input, textarea';
+
+// 保存到 localStorage 的键名
+const STORAGE_KEY = "medical_form_data";
+
+// ==== 自动保存 ====
+function autoSave() {
+    const allInputs = document.querySelectorAll(INPUT_SELECTOR);
+
+    let data = {};
+    allInputs.forEach(el => {
+        if (el.id) data[el.id] = el.value;
+    });
+
+    // 特殊保存：滑块数值文本（因为它们不是输入框）
+    data['font_size_value'] = font_size_value.innerText;
+    data['start_x_value'] = start_x_value.innerText;
+    data['start_y_value'] = start_y_value.innerText;
+    data['line_height_value'] = line_height_value.innerText;
+    data['line_jitter_value'] = line_jitter_value.innerText;
+    data['char_jitter_value'] = char_jitter_value.innerText;
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+// ==== 恢复数据 ====
+function restoreData() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return;
+
+    const data = JSON.parse(saved);
+
+    Object.keys(data).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.value = data[id];
+
+            // 如果是滑块，需要同步显示数值
+            if (el.type === "range") {
+                document.getElementById(id + "_value").innerText = data[id];
+            }
+        }
+    });
+}
+
+// 页面加载时恢复
+window.addEventListener("DOMContentLoaded", restoreData);
+
+// 所有输入变化时自动保存
+document.addEventListener("input", autoSave);
+</script>
+
+</body>
+</html>
