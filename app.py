@@ -1,14 +1,29 @@
-from flask import Flask, request, send_file, render_template, jsonify
+import os
+import sys
+from urllib.parse import quote
+# === 打包路径处理函数 ===
+def get_resource_path(relative_path):
+    """获取资源的绝对路径（支持打包和开发环境）"""
+    try:
+        # 打包后的环境
+        base_path = sys._MEIPASS
+    except AttributeError:
+        # 开发环境
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    
+    full_path = os.path.join(base_path, relative_path)
+    return full_path
+# === 结束路径处理函数 ===
+
+from flask import Flask, request, send_file, render_template, jsonify, make_response
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.pagesizes import A4
-import os
 import tempfile
 import zipfile
 from io import BytesIO
 import random
-from pdf2image import convert_from_bytes  # 🟢 新增：PDF 转图片
 import fitz
 from PIL import Image
 import io
@@ -17,8 +32,8 @@ app = Flask(__name__, template_folder=".")
 
 class PDFGenerator:
     def __init__(self):
-        self.background_image = "base.jpg"
-        self.font_path = "handwrite.ttf"
+        self.background_image = get_resource_path("base.jpg")
+        self.font_path = get_resource_path("handwrite.ttf")
         self.font_name = "HandwriteFont"
 
     def register_font(self):
@@ -130,9 +145,13 @@ class PDFGenerator:
 
 generator = PDFGenerator()
 
-
+# 保存当前生成文件的信息
+last_image_info = {
+    "name": "未知",
+    "patient_id": "未知"
+}
 # =========================================
-# 🟢 新功能：PDF → PNG 图片（第一页）
+# 🟢 新功能：PDF → PNG 图片
 # =========================================
 def pdf_to_images(pdf_bytes):
     """将PDF所有页面转换为PNG图片列表"""
@@ -171,25 +190,60 @@ def index():
 
 @app.route("/preview", methods=["POST"])
 def preview_pdf():
+
+    global last_image_info
+
     try:
+
         data = request.get_json()
+
         text = data.get("text", "")
         fields = data.get("fields", {})
         settings = data.get("settings", {})
 
-        pdf_buffer = generator.create_pdf_with_preview(text, fields, settings)
 
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
+        # 保存姓名和住院号
+        last_image_info = {
+            "name": fields.get("姓名", "未知"),
+            "patient_id": fields.get("住院号", "未知")
+        }
+
+
+        pdf_buffer = generator.create_pdf_with_preview(
+            text,
+            fields,
+            settings
+        )
+
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".pdf",
+            delete=False
+        ) as f:
+
             f.write(pdf_buffer.getvalue())
             path = f.name
 
-        return jsonify({
-            "success": True,
-            "preview_url": "/view_pdf/" + os.path.basename(path)
-        })
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
 
+        return jsonify({
+
+            "success": True,
+
+            "preview_url":
+                "/view_pdf/" + os.path.basename(path)
+
+        })
+
+
+    except Exception as e:
+
+        return jsonify({
+
+            "success": False,
+
+            "error": str(e)
+
+        })
 
 # =========================================
 # 原有 PDF 下载接口
@@ -221,8 +275,16 @@ def generate_pdf():
 # =========================================
 @app.route("/download_images/<filename>")
 def download_images(filename):
-    """下载所有页面图片为ZIP压缩包"""
-    path = os.path.join(tempfile.gettempdir(), filename)
+    global last_image_info
+
+    print("进入新的下载接口", flush=True)
+    print(last_image_info, flush=True)
+
+    path = os.path.join(
+        tempfile.gettempdir(),
+        filename
+    )
+
     if not os.path.exists(path):
         return "文件不存在", 404
 
@@ -231,27 +293,39 @@ def download_images(filename):
 
     images = pdf_to_images(pdf_bytes)
 
-    # 创建ZIP压缩包
     zip_buffer = BytesIO()
-    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
         for i, img in enumerate(images):
             img_buffer = BytesIO()
-            img.save(img_buffer, format='PNG')
-            img_buffer.seek(0)
-            zip_file.writestr(f"手写文档_第{i+1}页.png", img_buffer.getvalue())
-    
+            if img.mode != "RGB":
+                img = img.convert("RGB")
+            img.save(img_buffer, format="JPEG", quality=95)
+
+            jpg_name = f"{last_image_info['name']}-{i+1}-{last_image_info['patient_id']}.jpg"
+            zip_file.writestr(jpg_name, img_buffer.getvalue())
+
     zip_buffer.seek(0)
-    
-    # 使用原文件名作为ZIP文件名的一部分
-    original_name = os.path.splitext(filename)[0]
-    download_name = f"{original_name}_所有页面.zip"
-    
-    return send_file(
-        zip_buffer,
-        as_attachment=True,
-        download_name=download_name,
-        mimetype='application/zip'
+
+    zip_name = (
+        f"{last_image_info['name']}-"
+        f"{last_image_info['patient_id']}.zip"
     )
+
+
+    response = make_response(
+        zip_buffer.getvalue()
+    )
+
+    response.headers["Content-Type"] = "application/zip"
+
+    response.headers["Content-Disposition"] = (
+        "attachment; filename*=UTF-8''"
+        + quote(zip_name)
+    )
+    print(response.headers, flush=True)
+   
+    return response
 
 
 # =========================================
@@ -265,17 +339,8 @@ def view_pdf(filename):
     return "文件不存在", 404
 
 
-# =========================================
-# 下载 PDF（原功能）
-# =========================================
-@app.route("/download/<filename>")
-def download_pdf(filename):
-    path = os.path.join(tempfile.gettempdir(), filename)
-    if os.path.exists(path):
-        return send_file(path, as_attachment=True, download_name="手写文档.pdf")
-    return "文件不存在", 404
 
 
 if __name__ == "__main__":
-    print("启动手写体文档生成器：http://127.0.0.1:5001")
-    app.run(debug=True, host="127.0.0.1", port=5001)
+    print("启动手写体文档生成器！！！：http://127.0.0.1:5002")
+    app.run(debug=True, host="127.0.0.1", port=5002)
