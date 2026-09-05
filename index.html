@@ -35,11 +35,31 @@ body{
 }
 
 .preview-panel{
-    flex:2;
+    flex:1;
 }
 
-.form-group{
-    margin-bottom:15px;
+.patient-info{
+    display:grid;
+
+    grid-template-columns:
+        auto 1fr
+        auto 1fr
+        auto 70px
+        auto 1.2fr;
+
+    gap:8px;
+
+    align-items:center;
+}
+
+.patient-info label{
+    margin:0;
+    font-size:13px;
+}
+
+.patient-info input{
+    height:32px;
+    padding:5px 8px;
 }
 
 label{
@@ -59,11 +79,15 @@ textarea{
     box-sizing:border-box;
 
 }
-textarea{
+#text_content,
+.preview-frame{
+    width:100%;
+    height:650px;
+    box-sizing:border-box;
+}
 
-    height:120px;
-    resize:vertical;
-
+#text_content{
+    resize:none;
 }
 input[type=number]{
     width:100%;
@@ -86,14 +110,8 @@ button:hover{
 
 }
 
-.preview-frame{
 
-    width:100%;
-    height:600px;
-    border:1px solid #ddd;
-    border-radius:4px;
 
-}
 
 .tab-buttons{
 
@@ -144,7 +162,7 @@ button:hover{
 
 <div class="panel control-panel">
 
-<h2>手写大病历！</h2>
+<h2>手写大病历</h2>
 
 <div class="tab-buttons">
 
@@ -175,7 +193,7 @@ onclick="switchTab('fields',this)">
 <div id="basic"
 class="tab-content active">
 
-<div class="form-group">
+<div class="form-group patient-info">
 
 <label>病区</label>
 <input id="病区">
@@ -206,7 +224,13 @@ placeholder="请输入文本内容"></textarea>
 
 <div id="text"
 class="tab-content">
+ <div class="form-group">
+        <label>字体</label>
 
+        <select id="font">
+            <option value="">下拉选择手写风格</option>
+        </select>
+    </div>
 </div>
 
 <div id="effects"
@@ -250,7 +274,115 @@ id="previewFrame">
 
 </div>
 <script>
+// ===============================
+// 加载模板
+// ===============================
+async function loadTemplate(){
 
+    try{
+
+        const res = await fetch("/template");
+        const data = await res.json();
+
+        if(!data.success) return;
+
+        // 回填正文
+        if(data.text){
+            document.getElementById("text_content").value = data.text;
+        }
+
+        // 回填病人信息字段的默认值
+        ["病区","姓名","床号","住院号"].forEach(key=>{
+            if(data[key] !== undefined && data[key] !== ""){
+                const el = document.getElementById(key);
+                if(el) el.value = data[key];
+            }
+        });
+
+    }catch(e){
+        console.error("加载模板失败", e);
+    }
+
+}
+
+// ===============================
+// 加载字体列表
+// ===============================
+
+async function loadFonts(){
+
+    const select = document.getElementById("font");
+
+    try{
+
+        const res = await fetch("/api/fonts");
+
+        const data = await res.json();
+
+        if(!data.success){
+            console.error(
+                "字体列表加载失败",
+                data.error
+            );
+
+            select.innerHTML =
+                `<option value="">字体加载失败</option>`;
+
+            return;
+        }
+
+
+        // 清空“字体加载中”
+        select.innerHTML = "";
+
+
+        // 后端没有发现任何字体
+        if(!data.fonts || data.fonts.length === 0){
+
+            select.innerHTML =
+                `<option value="">没有可用字体</option>`;
+
+            return;
+        }
+
+
+        // 添加字体
+        data.fonts.forEach(fontName => {
+
+            const option =
+                document.createElement("option");
+
+            option.value = fontName;
+
+            option.textContent = fontName;
+
+
+            // 默认字体
+            if(fontName === data.default){
+
+                option.selected = true;
+
+            }
+
+
+            select.appendChild(option);
+
+        });
+
+
+    }catch(e){
+
+        console.error(
+            "加载字体失败",
+            e
+        );
+
+        select.innerHTML =
+            `<option value="">字体加载失败</option>`;
+
+    }
+
+}
 // ===============================
 // 滑块配置
 // ===============================
@@ -414,6 +546,10 @@ function getSettings(){
         );
 
     });
+    result.font =
+    document
+    .getElementById("font")
+    .value;
 
     result.fields={};
     fieldConfig.forEach(item=>{
@@ -475,7 +611,8 @@ function getFields(){
 
 }
 
-let currentPdfFilename=null;
+let currentPdfFilename = null;
+let currentTaskId = null;
 
 // ===============================
 // PDF预览
@@ -542,7 +679,8 @@ async function generatePreview(){
         data.preview_url
         .split("/")
         .pop();
-
+        currentTaskId =
+        data.task_id;
 
 
         document
@@ -577,115 +715,18 @@ async function generatePreview(){
 
 function downloadAllImages(){
 
-    if(!currentPdfFilename){
+    if(!currentPdfFilename || !currentTaskId){
 
         alert(
             "请先生成PDF"
         );
+
         return;
     }
 
+
     window.location.href =
-    `/download_images/${currentPdfFilename}`;
-
-}
-
-
-// ===============================
-// 自动保存
-// ===============================
-
-const STORAGE_KEY =
-"medical_form_data";
-
-function autoSave(){
-
-
-    let data={};
-
-
-
-    document
-    .querySelectorAll(
-        "input,textarea"
-    )
-    .forEach(el=>{
-
-
-        if(el.id)
-
-        data[el.id]=el.value;
-
-
-    });
-
-
-
-    localStorage.setItem(
-
-        STORAGE_KEY,
-
-        JSON.stringify(data)
-
-    );
-
-
-}
-
-
-
-
-// ===============================
-// 恢复数据
-// ===============================
-
-function restoreData(){
-
-
-    const saved =
-    localStorage.getItem(
-        STORAGE_KEY
-    );
-
-
-
-    if(!saved)
-
-        return;
-
-
-
-    const data =
-    JSON.parse(saved);
-
-
-
-    Object.keys(data)
-    .forEach(id=>{
-
-
-        const el =
-        document
-        .getElementById(id);
-
-
-
-        if(el){
-
-
-            el.value=data[id];
-
-
-
-
-
-        }
-
-
-    });
-
-
-
+    `/download_images/${currentTaskId}/${currentPdfFilename}`;
 }
 
 
@@ -693,22 +734,12 @@ function restoreData(){
 // ===============================
 // 初始化
 // ===============================
-
+window.addEventListener("DOMContentLoaded", loadTemplate);
 createsettingsConfig();
 
 createFields();
+loadFonts();
 
-
-window.addEventListener(
-    "DOMContentLoaded",
-    restoreData
-);
-
-
-document.addEventListener(
-    "input",
-    autoSave
-);
 
 
 

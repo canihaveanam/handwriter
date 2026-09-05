@@ -1,69 +1,256 @@
 import os
-import subprocess
+import sys
 import shutil
+import subprocess
+
 
 def clean_previous_builds():
     """清理之前的构建文件"""
-    folders_to_remove = ['dist', 'build']
-    files_to_remove = ['HandWriter.spec', 'app.spec']
-    
+
+    folders_to_remove = [
+        "dist",
+        "build"
+    ]
+
+    files_to_remove = [
+        "HandWriter.spec",
+        "app.spec"
+    ]
+
     for folder in folders_to_remove:
         if os.path.exists(folder):
             print(f"删除文件夹: {folder}")
-            shutil.rmtree(folder)
-    
+            shutil.rmtree(folder, ignore_errors=True)
+
     for file in files_to_remove:
         if os.path.exists(file):
             print(f"删除文件: {file}")
             os.remove(file)
 
-def build_app():
-    print("开始打包 HandWriter...")
-    print("=" * 50)
-    
-    # 清理之前的构建
-    clean_previous_builds()
-    
-    # 打包命令
-    cmd = [
-        'pyinstaller',
-        'app.py',
-        '--onefile',                    # 单个exe文件
-        '--add-data', 'base.jpg;.',     # 包含基础图片
-        '--add-data', 'handwrite.ttf;.', # 包含字体文件
-        '--add-data', 'index.html;.',   # 包含网页文件
-        '--name', 'HandWriter',         # 输出文件名
-        '--clean',                      # 清理缓存
-        '--noconsole'                   # 不显示控制台窗口
-    ]
-    
-    print("执行打包命令...")
-    print(' '.join(cmd))
-    print("-" * 50)
-    
-    # 执行打包
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    
-    # 检查结果
-    if result.returncode == 0:
-        print("✅ 打包成功！")
-        print("-" * 50)
-        
-        # 检查生成的文件
-        exe_path = os.path.join('dist', 'HandWriter.exe')
-        if os.path.exists(exe_path):
-            file_size = os.path.getsize(exe_path) / (1024 * 1024)  # MB
-            print(f"📁 生成文件: {exe_path}")
-            print(f"📊 文件大小: {file_size:.2f} MB")
-            print("\n🎉 打包完成！请将 dist/HandWriter.exe 复制到内网电脑使用")
-        else:
-            print("❌ 错误：EXE文件未生成")
-    else:
-        print("❌ 打包失败！")
-        print("错误信息:")
-        print(result.stderr)
-        print("输出信息:")
-        print(result.stdout)
 
-if __name__ == '__main__':
+def build_app():
+
+    print("开始打包 HandWriter...")
+    print("=" * 60)
+
+    # 当前 build.py 所在目录
+    project_dir = os.path.dirname(
+        os.path.abspath(__file__)
+    )
+
+    # 切换到项目根目录
+    os.chdir(project_dir)
+
+    print(f"项目目录: {project_dir}")
+    print(f"Python: {sys.executable}")
+    print("-" * 60)
+
+
+    # 检查必要文件
+
+    required_files = [
+        "app.py",
+        "base.jpg",
+        "index.html",
+        "template.json",
+        "font_manager.py"
+    ]
+
+    required_dirs = [
+        "fonts"
+    ]
+
+
+    missing = []
+
+    for file in required_files:
+        if not os.path.exists(file):
+            missing.append(file)
+
+    for folder in required_dirs:
+        if not os.path.isdir(folder):
+            missing.append(folder + "/")
+
+
+    if missing:
+
+        print("❌ 缺少以下文件/目录:")
+
+        for item in missing:
+            print("   -", item)
+
+        return
+
+
+    # 检查字体
+
+    print("发现字体:")
+
+    fonts = []
+
+    for filename in os.listdir("fonts"):
+
+        if filename.lower().endswith(
+            (".ttf", ".otf")
+        ):
+            fonts.append(filename)
+            print(
+                f"   ✓ fonts/{filename}"
+            )
+
+
+    if not fonts:
+
+        print("❌ fonts 文件夹没有字体")
+
+        return
+
+
+    print("-" * 60)
+
+
+    # 清理旧版本
+
+    clean_previous_builds()
+
+
+    # PyInstaller命令
+
+    cmd = [
+
+        sys.executable,
+
+        "-m",
+
+        "PyInstaller",
+
+
+        "app.py",
+
+
+        # 单文件
+        "--onefile",
+
+
+        # 程序名字
+        "--name",
+        "HandWriter",
+
+
+        # 资源文件
+
+        "--add-data",
+        "base.jpg;.",
+
+
+        "--add-data",
+        "index.html;.",
+
+
+
+        # 字体目录
+
+        "--add-data",
+        "fonts;fonts",
+
+
+        # 清理缓存
+
+        "--clean",
+
+
+        # 自动覆盖
+
+        "--noconfirm",
+
+
+        # 调试阶段先关闭
+        # 测试成功后打开
+        #
+        "--noconsole",
+
+    ]
+
+
+    print("执行打包命令:")
+    print()
+
+    print(
+        " ".join(cmd)
+    )
+
+    print()
+
+    print("-" * 60)
+
+
+    # 执行
+
+    result = subprocess.run(cmd)
+
+
+    print("-" * 60)
+
+
+    if result.returncode == 0:
+
+
+        exe_path = os.path.join(
+            "dist",
+            "HandWriter.exe"
+        )
+
+
+        if os.path.exists(exe_path):
+
+            size = (
+                os.path.getsize(exe_path)
+                /
+                (1024 * 1024)
+            )
+
+
+            print()
+            print("✅ 打包成功！")
+
+            print(
+                f"📁 EXE位置:"
+                f" {os.path.abspath(exe_path)}"
+            )
+
+            print(
+                f"📊 文件大小:"
+                f" {size:.2f} MB"
+            )
+
+            print()
+
+            print(
+                "🎉 完成"
+            )
+
+
+        else:
+
+            print(
+                "❌ 没找到 HandWriter.exe"
+            )
+
+
+    else:
+
+        print()
+
+        print(
+            "❌ PyInstaller 打包失败"
+        )
+
+        print(
+            f"返回代码: {result.returncode}"
+        )
+
+
+
+if __name__ == "__main__":
+
     build_app()

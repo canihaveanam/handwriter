@@ -1,6 +1,8 @@
 import os
 import sys
 from urllib.parse import quote
+import datetime
+import json   
 # === 打包路径处理函数 ===
 def get_resource_path(relative_path):
     """获取资源的绝对路径（支持打包和开发环境）"""
@@ -27,23 +29,23 @@ import random
 import fitz
 from PIL import Image
 import io
+import uuid
+from font_manager import FontManager
 
-app = Flask(__name__, template_folder=".")
+app = Flask(__name__, template_folder=get_resource_path("."))
+
+font_manager = FontManager(
+    get_resource_path,
+    fonts_dir="fonts",
+    default_font="StyleA"
+)
 
 class PDFGenerator:
-    def __init__(self):
+    def __init__(self, font_manager):
         self.background_image = get_resource_path("base.jpg")
-        self.font_path = get_resource_path("handwrite.ttf")
-        self.font_name = "HandwriteFont"
+        self.font_manager = font_manager
 
-    def register_font(self):
-        try:
-            if os.path.exists(self.font_path):
-                pdfmetrics.registerFont(TTFont(self.font_name, self.font_path))
-                return True
-        except:
-            pass
-        return False
+
 
     def create_pdf_with_preview(self, text, fields=None, settings=None):
         if settings is None:
@@ -53,8 +55,9 @@ class PDFGenerator:
         c = canvas.Canvas(pdf_buffer, pagesize=A4)
 
         font_size = settings.get("font_size", 15)
-        use_custom_font = self.register_font()
-        font_name = self.font_name if use_custom_font else "Helvetica"
+        selected_font = settings.get("font")
+
+        font_name = self.font_manager.get_reportlab_font_name(selected_font)
         c.setFont(font_name, font_size)
 
         # 页背景
@@ -143,15 +146,39 @@ class PDFGenerator:
         return pdf_buffer
 
 
-generator = PDFGenerator()
+generator = PDFGenerator(font_manager)
+def get_log_dir():
+    if getattr(sys, 'frozen', False):
+        # 打包后：exe 所在目录（不是 _MEIPASS 临时目录）
+        base_path = os.path.dirname(sys.executable)
+    else:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_path, "logs")
+
+
+def write_log(action, ip, filename):
+    """
+    记录操作日志
+    """
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    log_dir = get_log_dir()
+    os.makedirs(log_dir, exist_ok=True)
+
+    log_file = os.path.join(log_dir, "operation.log")
+
+    with open(log_file, "a", encoding="utf-8") as f:
+        f.write(
+            f"{now} | "
+            f"IP={ip} | "
+            f"操作={action} | "
+            f"文件={filename}\n"
+        )
+
 
 # 保存当前生成文件的信息
-last_image_info = {
-    "name": "未知",
-    "patient_id": "未知"
-}
-# =========================================
-# 🟢 新功能：PDF → PNG 图片
+tasks = {}# =========================================
+# 🟢 PDF → PNG 图片
 # =========================================
 def pdf_to_images(pdf_bytes):
     """将PDF所有页面转换为PNG图片列表"""
@@ -182,19 +209,76 @@ def pdf_to_images(pdf_bytes):
         return [img]
 
 # =========================================
-# 原有预览接口
+# 预览接口
 # =========================================
 @app.route("/")
 def index():
     return render_template("index.html")
+# =========================================
+# 模板接口
+# =========================================
+def get_template_path():
+    if getattr(sys, 'frozen', False):
+        base_path = os.path.dirname(sys.executable)
+    else:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_path, "template.json")
+
+# =========================================
+# 字体接口
+# =========================================
+
+@app.route("/template", methods=["GET"])
+def get_template():
+    try:
+        path = get_template_path()
+        if not os.path.exists(path):
+            return jsonify({
+                "success": True,
+                "text": "",
+                "病区": "",
+                "姓名": "",
+                "床号": "",
+                "住院号": ""
+            })
+
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        return jsonify({"success": True, **data})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+@app.route("/api/fonts", methods=["GET"])
+def get_fonts():
+    try:
+        fonts = font_manager.list_fonts()
+        default_font = font_manager.get_default_font()
+
+        return jsonify({
+            "success": True,
+            "fonts": fonts,
+            "default": default_font
+        })
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "fonts": [],
+            "default": None,
+            "error": str(e)
+        })
+
 
 @app.route("/preview", methods=["POST"])
 def preview_pdf():
 
-    global last_image_info
+    
 
     try:
-
+        task_id = str(uuid.uuid4())
         data = request.get_json()
 
         text = data.get("text", "")
@@ -203,7 +287,7 @@ def preview_pdf():
 
 
         # 保存姓名和住院号
-        last_image_info = {
+        tasks[task_id] = {
             "name": fields.get("姓名", "未知"),
             "patient_id": fields.get("住院号", "未知")
         }
@@ -224,14 +308,13 @@ def preview_pdf():
             f.write(pdf_buffer.getvalue())
             path = f.name
 
+        write_log("预览PDF", request.remote_addr, os.path.basename(path))
 
         return jsonify({
-
             "success": True,
-
             "preview_url":
-                "/view_pdf/" + os.path.basename(path)
-
+                "/view_pdf/" + os.path.basename(path),
+            "task_id": task_id
         })
 
 
@@ -271,14 +354,18 @@ def generate_pdf():
 
 
 # =========================================
-# 新增：下载 PDF 的 PNG 图片
+# 下载 PDF 的 PNG 图片
 # =========================================
-@app.route("/download_images/<filename>")
-def download_images(filename):
-    global last_image_info
+@app.route("/download_images/<task_id>/<filename>")
+def download_images(task_id, filename):
 
     print("进入新的下载接口", flush=True)
-    print(last_image_info, flush=True)
+    info = tasks.get(task_id)
+
+    print(info, flush=True)
+
+    if not info:
+        return "任务不存在", 404
 
     path = os.path.join(
         tempfile.gettempdir(),
@@ -302,16 +389,19 @@ def download_images(filename):
                 img = img.convert("RGB")
             img.save(img_buffer, format="JPEG", quality=95)
 
-            jpg_name = f"{last_image_info['name']}-{i+1}-{last_image_info['patient_id']}.jpg"
+            info = tasks.get(task_id)
+
+            jpg_name = f"{info['name']}-{i+1}-{info['patient_id']}.jpg"
             zip_file.writestr(jpg_name, img_buffer.getvalue())
 
     zip_buffer.seek(0)
 
     zip_name = (
-        f"{last_image_info['name']}-"
-        f"{last_image_info['patient_id']}.zip"
+        f"{info['name']}-"
+        f"{info['patient_id']}.zip"
     )
 
+    write_log("下载zip图片包", request.remote_addr, zip_name)
 
     response = make_response(
         zip_buffer.getvalue()
@@ -329,7 +419,7 @@ def download_images(filename):
 
 
 # =========================================
-# 查看 PDF
+# 查看 PDF文件
 # =========================================
 @app.route("/view_pdf/<filename>")
 def view_pdf(filename):
@@ -342,5 +432,5 @@ def view_pdf(filename):
 
 
 if __name__ == "__main__":
-    print("启动手写体文档生成器！！！：http://127.0.0.1:5002")
-    app.run(debug=True, host="127.0.0.1", port=5002)
+    print("启动手写体文档生成器！！！：http://0.0.0.0:5000")
+    app.run(debug=False, host="0.0.0.0", port=5000)
