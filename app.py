@@ -156,28 +156,32 @@ def get_log_dir():
     return os.path.join(base_path, "logs")
 
 
-def write_log(action, ip, filename):
-    """
-    记录操作日志
-    """
+def write_log(action, ip, filename="-"):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    log_line = (
+        f"{now} | "
+        f"IP={ip} | "
+        f"操作={action} | "
+        f"文件={filename}"
+    )
+
+    # 这个能在 Render 后台 Logs 里看到
+    print(log_line, flush=True)
+
+    # 本地也写一份，但 Render 免费版休眠后可能丢
     log_dir = get_log_dir()
     os.makedirs(log_dir, exist_ok=True)
 
     log_file = os.path.join(log_dir, "operation.log")
 
     with open(log_file, "a", encoding="utf-8") as f:
-        f.write(
-            f"{now} | "
-            f"IP={ip} | "
-            f"操作={action} | "
-            f"文件={filename}\n"
-        )
+        f.write(log_line + "\n")
 
 
 # 保存当前生成文件的信息
-tasks = {}# =========================================
+tasks = {}
+# =========================================
 # 🟢 PDF → PNG 图片
 # =========================================
 def pdf_to_images(pdf_bytes):
@@ -213,7 +217,9 @@ def pdf_to_images(pdf_bytes):
 # =========================================
 @app.route("/")
 def index():
+    write_log("访问主页", request.remote_addr,"-")
     return render_template("index.html")
+
 # =========================================
 # 模板接口
 # =========================================
@@ -414,7 +420,7 @@ def download_images(task_id, filename):
         + quote(zip_name)
     )
     print(response.headers, flush=True)
-   
+
     return response
 
 
@@ -434,3 +440,5 @@ def view_pdf(filename):
 if __name__ == "__main__":
     print("启动手写体文档生成器！！！：http://0.0.0.0:5000")
     app.run(debug=False, host="0.0.0.0", port=5000)
+
+
