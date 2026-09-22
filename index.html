@@ -1,14 +1,10 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="zh-CN">
 <head>
-
+<meta charset="utf-8">
 <title>手写大病历</title>
 
-<meta charset="utf-8">
-
 <style>
-
 body{
     font-family:Arial,sans-serif;
     margin:0;
@@ -28,27 +24,27 @@ body{
     padding:20px;
     border-radius:8px;
     box-shadow:0 2px 10px rgba(0,0,0,.1);
+    box-sizing:border-box;
 }
 
 .control-panel{
     flex:1;
+    min-width:0;
 }
 
 .preview-panel{
     flex:1;
+    min-width:0;
 }
 
 .patient-info{
     display:grid;
-
     grid-template-columns:
         auto 1fr
         auto 1fr
         auto 70px
         auto 1.2fr;
-
     gap:8px;
-
     align-items:center;
 }
 
@@ -62,6 +58,10 @@ body{
     padding:5px 8px;
 }
 
+.form-group{
+    margin-bottom:12px;
+}
+
 label{
     display:block;
     margin-bottom:5px;
@@ -70,30 +70,78 @@ label{
 }
 
 input,
-textarea{
-
+textarea,
+select{
     width:100%;
     padding:8px;
     border:1px solid #ddd;
     border-radius:4px;
     box-sizing:border-box;
-
-}
-#text_content,
-.preview-frame{
-    width:100%;
-    height:650px;
-    box-sizing:border-box;
 }
 
 #text_content{
-    resize:none;
+    width:100%;
+    height:650px;
+    padding:8px;
+    border:1px solid #ddd;
+    border-radius:4px;
+    box-sizing:border-box;
+    overflow:auto;
+    white-space:pre-wrap;
+    overflow-wrap:anywhere;
+    outline:none;
+    background:white;
+    line-height:1.6;
 }
+
+#text_content:focus{
+    border-color:#007cba;
+    box-shadow:0 0 0 2px rgba(0,124,186,.12);
+}
+
+#text_content:empty::before{
+    content:attr(data-placeholder);
+    color:#999;
+    pointer-events:none;
+}
+
+.text-editor-toolbar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:6px;
+}
+
+.text-editor-toolbar label{
+    margin:0;
+}
+
+.mark-button{
+    margin:0 0 0 auto;
+    padding:6px 14px;
+    background:#f0ad00;
+    color:#222;
+}
+
+.mark-button:hover{
+    background:#d99c00;
+}
+
+.template-slot{
+    background:#fff08a;
+    border-radius:3px;
+    padding:1px 2px;
+    box-decoration-break:clone;
+    -webkit-box-decoration-break:clone;
+    cursor:text;
+}
+
+
 input[type=number]{
     width:100%;
 }
-button{
 
+button{
     background:#007cba;
     color:white;
     padding:10px 20px;
@@ -101,533 +149,3398 @@ button{
     border-radius:4px;
     cursor:pointer;
     margin:5px;
-
 }
 
 button:hover{
-
     background:#005a87;
-
 }
 
-
-
+button:disabled{
+    opacity:.5;
+    cursor:not-allowed;
+}
 
 .tab-buttons{
-
     display:flex;
     border-bottom:1px solid #ddd;
     margin-bottom:10px;
-
 }
 
 .tab-button{
-
     padding:10px 20px;
     cursor:pointer;
     border:none;
     background:#eee;
+    color:#333;
     border-radius:4px 4px 0 0;
+    margin:0 2px 0 0;
+}
 
+.tab-button:hover{
+    background:#ddd;
 }
 
 .tab-button.active{
-
     background:#007cba;
     color:white;
-
 }
 
 .tab-content{
-
     display:none;
-
 }
 
 .tab-content.active{
-
     display:block;
-
 }
 
-</style>
+.action-bar{
+    margin-top:10px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:4px;
+}
 
+
+.template-manager{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+    margin:18px 0 0 0;
+    padding:12px;
+    background:#f7f7f7;
+    border:1px solid #e2e2e2;
+    border-radius:6px;
+}
+
+.template-manager-title{
+    width:100%;
+    padding-bottom:8px;
+    margin-bottom:2px;
+    border-bottom:1px solid #e2e2e2;
+    font-weight:bold;
+    color:#333;
+}
+
+.template-manager label{
+    margin:0;
+    white-space:nowrap;
+}
+
+.template-manager select{
+    flex:1 1 220px;
+    min-width:180px;
+}
+
+.template-manager button{
+    margin:0;
+    padding:8px 12px;
+}
+
+.template-manager .danger-button{
+    background:#c94a4a;
+}
+
+.template-manager .danger-button:hover{
+    background:#a93636;
+}
+
+.template-status{
+    width:100%;
+    min-height:18px;
+    margin-top:2px;
+    color:#666;
+    font-size:12px;
+}
+
+/* =========================================
+   编辑画布
+========================================= */
+
+.canvas-viewport{
+    width:100%;
+    height:650px;
+    overflow:auto;
+    padding:10px;
+    background:#ddd;
+    border:1px solid #ccc;
+    box-sizing:border-box;
+}
+
+.canvas-stage{
+    position:relative;
+    width:100%;
+    display:block;
+    user-select:none;
+    background:white;
+}
+
+#canvasImage{
+    display:block;
+    width:100%;
+    height:auto;
+    pointer-events:none;
+    user-select:none;
+}
+
+.layout-box{
+    position:absolute;
+    box-sizing:border-box;
+    overflow:hidden;
+    border:2px solid transparent;
+    background:transparent;
+    pointer-events:none;
+    touch-action:none;
+}
+
+.box-text{
+    width:100%;
+    height:100%;
+    padding:2px;
+    box-sizing:border-box;
+    overflow:hidden;
+    color:#111;
+    font-size:14px;
+    line-height:1.5;
+    pointer-events:none;
+}
+
+.field-layout-box .box-text{
+    white-space:nowrap;
+}
+
+.body-layout-box .box-text{
+    white-space:pre-wrap;
+}
+
+.canvas-stage.editing .layout-box{
+    border:2px dashed #007cba;
+    background:rgba(0,124,186,.06);
+    cursor:move;
+    pointer-events:auto;
+}
+
+.canvas-stage.editing .layout-box.active{
+    border-style:solid;
+    box-shadow:0 0 0 2px rgba(0,124,186,.15);
+}
+
+.resize-handle{
+    display:none;
+    position:absolute;
+    width:14px;
+    height:14px;
+    right:0;
+    bottom:0;
+    background:#007cba;
+    cursor:nwse-resize;
+    z-index:10;
+}
+
+.canvas-stage.editing .resize-handle{
+    display:block;
+}
+
+/* =========================================
+   Pillow 多页真实预览
+========================================= */
+
+.rendered-pages{
+    display:none;
+}
+
+.rendered-pages.active{
+    display:block;
+}
+
+.rendered-page{
+    margin:0 0 18px 0;
+}
+
+.rendered-page-label{
+    margin:0 0 6px 0;
+    font-size:13px;
+    font-weight:bold;
+    color:#555;
+}
+
+.rendered-page img{
+    display:block;
+    width:100%;
+    height:auto;
+    background:white;
+    box-shadow:0 1px 6px rgba(0,0,0,.15);
+}
+
+.editor-hint{
+    margin:8px 0 0;
+    color:#666;
+    font-size:12px;
+}
+
+@media(max-width:1000px){
+    .container{
+        flex-direction:column;
+    }
+
+    .patient-info{
+        grid-template-columns:auto 1fr auto 1fr;
+    }
+}
+</style>
 </head>
 
 <body>
 
 <div class="container">
 
-<!-- 左侧控制区域 -->
+    <div class="panel control-panel">
 
-<div class="panel control-panel">
+        <h2>手写大病历</h2>
 
-<h2>手写大病历</h2>
+        <div class="tab-buttons">
 
-<div class="tab-buttons">
+            <button
+                class="tab-button active"
+                onclick="switchTab('basic',this)"
+            >
+                基本信息
+            </button>
 
-<button class="tab-button active"
-onclick="switchTab('basic',this)">
-基本信息
-</button>
+            <button
+                class="tab-button"
+                onclick="switchTab('text',this)"
+            >
+                文本设置
+            </button>
 
-<button class="tab-button"
-onclick="switchTab('text',this)">
-文本设置
-</button>
+            <button
+                class="tab-button"
+                onclick="switchTab('effects',this)"
+            >
+                手写效果
+            </button>
 
-<button class="tab-button"
-onclick="switchTab('effects',this)">
-手写效果
-</button>
+        </div>
 
-<button class="tab-button"
-onclick="switchTab('fields',this)">
-字段位置
-</button>
+        <div
+            id="basic"
+            class="tab-content active"
+        >
 
-</div>
+            <div class="form-group patient-info">
 
-<!-- 基本信息 -->
+                <label>病区</label>
+                <input id="病区">
 
-<div id="basic"
-class="tab-content active">
+                <label>姓名</label>
+                <input id="姓名">
 
-<div class="form-group patient-info">
+                <label>床号</label>
+                <input id="床号">
 
-<label>病区</label>
-<input id="病区">
+                <label>住院号</label>
+                <input id="住院号">
 
-<label>姓名</label>
-<input id="姓名">
+            </div>
 
-<label>床号</label>
-<input id="床号">
+            <div class="form-group">
 
-<label>住院号</label>
-<input id="住院号">
+                <div class="text-editor-toolbar">
 
-</div>
+                    <label>文本内容</label>
 
-<div class="form-group">
+                    <button
+                        type="button"
+                        class="mark-button"
+                        onmousedown="event.preventDefault()"
+                        onclick="markSelectedText()"
+                    >
+                        标记
+                    </button>
 
-<label>文本内容</label>
+                </div>
 
-<textarea id="text_content"
-placeholder="请输入文本内容"></textarea>
+                <div
+                    id="text_content"
+                    contenteditable="true"
+                    spellcheck="false"
+                    data-placeholder="请输入文本内容"
+                ></div>
 
-</div>
+            </div>
 
-</div>
+        </div>
 
-<!-- 滑块自动生成 -->
+        <div
+            id="text"
+            class="tab-content"
+        >
 
-<div id="text"
-class="tab-content">
- <div class="form-group">
-        <label>字体</label>
+            <div class="form-group">
 
-        <select id="font">
-            <option value="">下拉选择手写风格</option>
-        </select>
+                <label>字体</label>
+
+                <select id="font">
+                    <option value="">
+                        下拉选择手写风格
+                    </option>
+                </select>
+
+            </div>
+
+        </div>
+
+        <div
+            id="effects"
+            class="tab-content"
+        >
+
+            <div id="effectsSettings"></div>
+
+            <div class="template-manager">
+
+                <div class="template-manager-title">
+                    模板管理
+                </div>
+
+                <label for="templateSelect">
+                    模板
+                </label>
+
+                <select
+                    id="templateSelect"
+                    onchange="loadSelectedTemplate()"
+                >
+                    <option value="">
+                        请选择模板
+                    </option>
+                </select>
+
+                <button
+                    type="button"
+                    onclick="newTemplate()"
+                >
+                    新建
+                </button>
+
+                <button
+                    type="button"
+                    onclick="saveTemplate()"
+                >
+                    保存模板
+                </button>
+
+                <button
+                    type="button"
+                    onclick="saveTemplateAs()"
+                >
+                    另存为
+                </button>
+
+                <button
+                    type="button"
+                    onclick="setDefaultTemplate()"
+                >
+                    设为默认
+                </button>
+
+                <button
+                    type="button"
+                    class="danger-button"
+                    onclick="deleteTemplate()"
+                >
+                    删除模板
+                </button>
+
+                <div
+                    id="templateStatus"
+                    class="template-status"
+                ></div>
+
+            </div>
+
+        </div>
+
+        <div class="action-bar">
+
+            <button
+                id="layoutEditBtn"
+                onclick="toggleLayoutEdit()"
+            >
+                编辑布局
+            </button>
+
+            <button
+                id="previewBtn"
+                onclick="generatePreview()"
+            >
+                预览生成效果
+            </button>
+
+            <button
+                id="downloadAllImages"
+                onclick="downloadAllImages()"
+                disabled
+            >
+                下载所有页面图片(ZIP)
+            </button>
+
+        </div>
+
     </div>
+
+
+    <div class="panel preview-panel">
+
+        <h2>实时预览</h2>
+
+        <div class="canvas-viewport">
+
+            <!-- 编辑器：永远基于 base.jpg -->
+            <div
+                id="previewFrame"
+                class="canvas-stage"
+            >
+
+                <img
+                    id="canvasImage"
+                    src="/base.jpg"
+                    draggable="false"
+                    alt="画布"
+                >
+
+                <div
+                    class="layout-box field-layout-box"
+                    id="box_病区"
+                    data-box="病区"
+                >
+                    <div class="box-text"></div>
+                    <div class="resize-handle"></div>
+                </div>
+
+                <div
+                    class="layout-box field-layout-box"
+                    id="box_姓名"
+                    data-box="姓名"
+                >
+                    <div class="box-text"></div>
+                    <div class="resize-handle"></div>
+                </div>
+
+                <div
+                    class="layout-box field-layout-box"
+                    id="box_床号"
+                    data-box="床号"
+                >
+                    <div class="box-text"></div>
+                    <div class="resize-handle"></div>
+                </div>
+
+                <div
+                    class="layout-box field-layout-box"
+                    id="box_住院号"
+                    data-box="住院号"
+                >
+                    <div class="box-text"></div>
+                    <div class="resize-handle"></div>
+                </div>
+
+                <div
+                    class="layout-box body-layout-box"
+                    id="box_正文"
+                    data-box="正文"
+                >
+                    <div class="box-text"></div>
+                    <div class="resize-handle"></div>
+                </div>
+
+            </div>
+
+            <!-- Pillow生成后，在这里连续显示第1/2/3...页 -->
+            <div
+                id="renderedPages"
+                class="rendered-pages"
+            >
+            </div>
+
+        </div>
+
+        <div class="editor-hint">
+            正文可选择文字后点击“标记”设为黄色待替换区域；点击黄色区域后粘贴新文字，黄色会自动消失。
+        </div>
+
+    </div>
+
 </div>
 
-<div id="effects"
-class="tab-content">
 
-</div>
-
-<!-- 字段位置自动生成 -->
-
-<div id="fields"
-class="tab-content">
-
-</div>
-
-<button onclick="generatePreview()">
-预览PDF
-</button>
-
-<button id="downloadAllImages"
-onclick="downloadAllImages()"
-disabled>
-
-下载所有页面图片(ZIP)
-
-</button>
-
-</div>
-
-<!-- 右侧预览 -->
-
-<div class="panel preview-panel">
-<h2>实时预览</h2>
-
-<iframe
-class="preview-frame"
-id="previewFrame">
-
-</iframe>
-
-</div>
-
-</div>
 <script>
-// ===============================
-// 加载模板
-// ===============================
-async function loadTemplate(){
 
-    try{
+const fieldNames = [
+    "病区",
+    "姓名",
+    "床号",
+    "住院号"
+];
 
-        const res = await fetch("/template");
-        const data = await res.json();
+let layoutEditing = false;
+let renderedPreview = false;
+let savedImageLayout = {};
 
-        if(!data.success) return;
+let currentTaskId = null;
+let currentPageCount = 0;
 
-        // 回填正文
-        if(data.text){
-            document.getElementById("text_content").value = data.text;
-        }
 
-        // 回填病人信息字段的默认值
-        ["病区","姓名","床号","住院号"].forEach(key=>{
-            if(data[key] !== undefined && data[key] !== ""){
-                const el = document.getElementById(key);
-                if(el) el.value = data[key];
-            }
-        });
+let currentTemplateId = null;
+let currentTemplateName = "";
+let defaultTemplateId = null;
 
-    }catch(e){
-        console.error("加载模板失败", e);
+
+/*
+    只要用户修改了内容或布局，
+    上一次生成的 ZIP 就视为过期。
+    必须重新点击“预览生成效果”。
+*/
+function invalidateGeneratedTask(){
+
+    currentTaskId = null;
+    currentPageCount = 0;
+
+    const button =
+        document.getElementById(
+            "downloadAllImages"
+        );
+
+    if(button){
+        button.disabled = true;
     }
 
 }
 
-// ===============================
-// 加载字体列表
-// ===============================
 
-async function loadFonts(){
+/* =========================================================
+   模板阶段1：正文“待替换区域”
+========================================================= */
 
-    const select = document.getElementById("font");
+function getEditor(){
 
-    try{
+    return document.getElementById(
+        "text_content"
+    );
 
-        const res = await fetch("/api/fonts");
+}
 
-        const data = await res.json();
 
-        if(!data.success){
-            console.error(
-                "字体列表加载失败",
-                data.error
+function getEditorPlainText(){
+
+    const editor = getEditor();
+
+    if(!editor){
+        return "";
+    }
+
+    /*
+        innerText 会把 contenteditable 中的换行转换成普通文本换行，
+        Pillow 只接收这里的纯文字，不会收到黄色背景或 HTML。
+    */
+    return editor.innerText
+        .replace(/\r\n/g, "\n");
+
+}
+
+
+function getClosestTemplateSlot(node){
+
+    if(!node){
+        return null;
+    }
+
+    let element =
+        node.nodeType === Node.ELEMENT_NODE
+        ? node
+        : node.parentElement;
+
+    if(!element){
+        return null;
+    }
+
+    return element.closest(
+        ".template-slot"
+    );
+
+}
+
+
+
+function markSelectedText(){
+
+    const editor =
+        getEditor();
+
+    const selection =
+        window.getSelection();
+
+    if(
+        !editor
+        ||
+        !selection
+        ||
+        selection.rangeCount === 0
+        ||
+        selection.isCollapsed
+    ){
+        alert(
+            "请先在正文中选择要标记的文字"
+        );
+
+        return;
+    }
+
+    const range =
+        selection.getRangeAt(0);
+
+    const commonNode =
+        range.commonAncestorContainer;
+
+    const commonElement =
+        commonNode.nodeType
+        === Node.ELEMENT_NODE
+        ? commonNode
+        : commonNode.parentElement;
+
+    if(
+        !commonElement
+        ||
+        (
+            commonElement !== editor
+            &&
+            !editor.contains(
+                commonElement
+            )
+        )
+    ){
+        alert(
+            "只能标记正文中的文字"
+        );
+
+        return;
+    }
+
+    const selectedText =
+        range.toString();
+
+    if(
+        !selectedText
+        ||
+        !selectedText.trim()
+    ){
+        alert(
+            "请选择实际文字，不要只选择空格或换行"
+        );
+
+        return;
+    }
+
+    /*
+        如果选择范围里已经包含黄色区域，
+        阶段1先不允许嵌套标记，避免结构变复杂。
+    */
+    const fragment =
+        range.cloneContents();
+
+    if(
+        fragment.querySelector
+        &&
+        fragment.querySelector(
+            ".template-slot"
+        )
+    ){
+        alert(
+            "选择范围中已经包含标记区域"
+        );
+
+        return;
+    }
+
+    const slot =
+        document.createElement(
+            "span"
+        );
+
+    slot.className =
+        "template-slot";
+
+    slot.dataset.originalText =
+        selectedText;
+
+    slot.dataset.slotId =
+        (
+            window.crypto
+            &&
+            crypto.randomUUID
+        )
+        ? crypto.randomUUID()
+        : (
+            "slot_"
+            + Date.now()
+            + "_"
+            + Math.random()
+                .toString(16)
+                .slice(2)
+        );
+
+    /*
+        extractContents + insertNode 比 surroundContents 更稳：
+        即使选择跨过了简单的文本节点，也能正常包装。
+    */
+    const content =
+        range.extractContents();
+
+    slot.appendChild(
+        content
+    );
+
+    range.insertNode(
+        slot
+    );
+
+    selection.removeAllRanges();
+
+    /*
+        标记完成后直接选中黄色区域，
+        用户可以马上 Ctrl+C / Ctrl+V 测试。
+    */
+    const newRange =
+        document.createRange();
+
+    newRange.selectNodeContents(
+        slot
+    );
+
+    selection.addRange(
+        newRange
+    );
+
+
+}
+
+
+function selectWholeTemplateSlot(
+    slot
+){
+
+    if(!slot){
+        return;
+    }
+
+    const selection =
+        window.getSelection();
+
+    const range =
+        document.createRange();
+
+    range.selectNodeContents(
+        slot
+    );
+
+    selection.removeAllRanges();
+
+    selection.addRange(
+        range
+    );
+
+}
+
+
+/*
+    一旦黄色区域中的文字发生变化，
+    就把 span 拆掉，只留下普通文本。
+
+    所以：
+    原来：
+        <span class="template-slot">右膝疼痛3个月</span>
+
+    用户粘贴以后：
+        左膝疼痛2周
+
+    黄色和 HTML 标记都会自动消失。
+*/
+function clearChangedTemplateSlots(){
+
+    const editor =
+        getEditor();
+
+    if(!editor){
+        return;
+    }
+
+    const changedSlots =
+        [];
+
+    editor
+        .querySelectorAll(
+            ".template-slot"
+        )
+        .forEach(
+            slot => {
+
+                const original =
+                    slot.dataset.originalText
+                    ?? "";
+
+                if(
+                    slot.textContent
+                    !== original
+                ){
+                    changedSlots.push(
+                        slot
+                    );
+                }
+
+            }
+        );
+
+    changedSlots.forEach(
+        slot => {
+
+            const textNode =
+                document.createTextNode(
+                    slot.textContent
+                );
+
+            slot.replaceWith(
+                textNode
             );
 
-            select.innerHTML =
-                `<option value="">字体加载失败</option>`;
-
-            return;
         }
+    );
+
+    if(changedSlots.length){
+
+        editor.normalize();
+
+    }
 
 
-        // 清空“字体加载中”
-        select.innerHTML = "";
+}
 
 
-        // 后端没有发现任何字体
-        if(!data.fonts || data.fonts.length === 0){
+function initTemplateEditor(){
 
-            select.innerHTML =
-                `<option value="">没有可用字体</option>`;
+    const editor =
+        getEditor();
 
-            return;
+    if(!editor){
+        return;
+    }
+
+    /*
+        点击黄色文字时自动选中整块。
+        下一步只需要 Ctrl+V 即可覆盖。
+    */
+    editor.addEventListener(
+        "click",
+        function(e){
+
+            const slot =
+                getClosestTemplateSlot(
+                    e.target
+                );
+
+            if(!slot){
+                return;
+            }
+
+            selectWholeTemplateSlot(
+                slot
+            );
+
         }
+    );
 
 
-        // 添加字体
-        data.fonts.forEach(fontName => {
+    /*
+        粘贴 / 输入改变黄色区域后：
+        自动去掉黄色。
 
-            const option =
-                document.createElement("option");
+        使用 input 而不是只监听 paste，
+        所以直接键盘输入替换同样有效。
+    */
+    editor.addEventListener(
+        "input",
+        function(){
 
-            option.value = fontName;
+            clearChangedTemplateSlots();
 
-            option.textContent = fontName;
+        }
+    );
 
 
-            // 默认字体
-            if(fontName === data.default){
+    /*
+        从病历系统复制过来的内容一律按纯文本粘贴，
+        防止把 Word / 网页颜色、字体、表格样式一起带进模板。
+    */
+    editor.addEventListener(
+        "paste",
+        function(e){
 
-                option.selected = true;
+            e.preventDefault();
+
+            const text =
+                e.clipboardData
+                    .getData(
+                        "text/plain"
+                    );
+
+            const selection =
+                window.getSelection();
+
+            if(
+                !selection
+                ||
+                selection.rangeCount === 0
+            ){
+                return;
+            }
+
+            const range =
+                selection.getRangeAt(0);
+
+            range.deleteContents();
+
+            const node =
+                document.createTextNode(
+                    text
+                );
+
+            range.insertNode(
+                node
+            );
+
+            range.setStartAfter(
+                node
+            );
+
+            range.collapse(
+                true
+            );
+
+            selection.removeAllRanges();
+
+            selection.addRange(
+                range
+            );
+
+
+            editor.dispatchEvent(
+                new InputEvent(
+                    "input",
+                    {
+                        bubbles:true,
+                        inputType:
+                            "insertFromPaste",
+                        data:text
+                    }
+                )
+            );
+
+        }
+    );
+
+
+}
+
+
+/* =========================================================
+   模板阶段2：保存 / 加载完整模板
+========================================================= */
+
+function setTemplateStatus(
+    message
+){
+
+    const el =
+        document.getElementById(
+            "templateStatus"
+        );
+
+    if(el){
+        el.textContent =
+            message || "";
+    }
+
+}
+
+
+function getTemplateUiSettings(){
+
+    const result = {
+        font:
+            document
+                .getElementById(
+                    "font"
+                )
+                .value
+    };
+
+    settingsConfig.forEach(
+        item => {
+
+            const el =
+                document.getElementById(
+                    item[0]
+                );
+
+            if(el){
+
+                result[item[0]] =
+                    Number(
+                        el.value
+                    );
 
             }
 
+        }
+    );
 
-            select.appendChild(option);
+    return result;
+
+}
+
+
+function applyTemplateUiSettings(
+    settings
+){
+
+    if(!settings){
+        return;
+    }
+
+    if(
+        settings.font
+        !== undefined
+    ){
+
+        const fontSelect =
+            document.getElementById(
+                "font"
+            );
+
+        /*
+            模板里保存的字体如果目前仍存在，
+            就恢复它。
+        */
+        const exists =
+            Array.from(
+                fontSelect.options
+            )
+            .some(
+                option =>
+                    option.value
+                    === settings.font
+            );
+
+        if(exists){
+
+            fontSelect.value =
+                settings.font;
+
+        }
+
+    }
+
+
+    settingsConfig.forEach(
+        item => {
+
+            if(
+                settings[item[0]]
+                === undefined
+            ){
+                return;
+            }
+
+            const el =
+                document.getElementById(
+                    item[0]
+                );
+
+            if(el){
+
+                el.value =
+                    settings[item[0]];
+
+            }
+
+        }
+    );
+
+
+    applyPreviewTextSettings();
+
+}
+
+
+function getTemplatePayload(
+    name,
+    templateId=null
+){
+
+    if(
+        !renderedPreview
+    ){
+
+        savedImageLayout =
+            getImagePixelLayout();
+
+    }
+
+    return {
+
+        id:
+            templateId,
+
+        name:
+            name,
+
+        fields:
+            getFields(),
+
+        settings:
+            getTemplateUiSettings(),
+
+        boxes:
+            savedImageLayout,
+
+        /*
+            这里保存 innerHTML，
+            所以黄色 template-slot 会被完整保存。
+        */
+        body_html:
+            getEditor().innerHTML,
+
+        /*
+            顺便保存纯文本，方便以后调试、搜索或升级格式。
+        */
+        body_text:
+            getEditorPlainText()
+
+    };
+
+}
+
+
+async function loadTemplateList(
+    selectedId=null,
+    autoLoadDefault=false
+){
+
+    const select =
+        document.getElementById(
+            "templateSelect"
+        );
+
+    try{
+
+        const res =
+            await fetch(
+                "/api/templates"
+            );
+
+        const data =
+            await res.json();
+
+        if(!data.success){
+
+            throw new Error(
+                data.error
+                || "模板列表加载失败"
+            );
+
+        }
+
+
+        defaultTemplateId =
+            data.default_template_id
+            || null;
+
+
+        select.innerHTML =
+            `<option value="">
+                请选择模板
+            </option>`;
+
+
+        data.templates.forEach(
+            item => {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+                option.value =
+                    item.id;
+
+                option.textContent =
+                    (
+                        item.name
+                        +
+                        (
+                            item.id
+                            === defaultTemplateId
+                            ? "（默认）"
+                            : ""
+                        )
+                    );
+
+                select.appendChild(
+                    option
+                );
+
+            }
+        );
+
+
+        let targetId =
+            selectedId
+            || currentTemplateId;
+
+
+        /*
+            只有程序初始化时才自动打开默认模板。
+            保存、另存为、设置默认等刷新列表时，
+            不会突然重新加载正文。
+        */
+        if(
+            autoLoadDefault
+            &&
+            defaultTemplateId
+        ){
+
+            targetId =
+                defaultTemplateId;
+
+        }
+
+
+        if(targetId){
+
+            select.value =
+                targetId;
+
+        }
+
+
+        if(
+            autoLoadDefault
+            &&
+            defaultTemplateId
+            &&
+            select.value
+            === defaultTemplateId
+        ){
+
+            await loadSelectedTemplate();
+
+        }
+
+    }
+    catch(e){
+
+        console.error(
+            "模板列表加载失败",
+            e
+        );
+
+        setTemplateStatus(
+            "模板列表加载失败"
+        );
+
+    }
+
+}
+
+async function loadSelectedTemplate(){
+
+    const select =
+        document.getElementById(
+            "templateSelect"
+        );
+
+    const templateId =
+        select.value;
+
+    if(!templateId){
+        return;
+    }
+
+
+    try{
+
+        setTemplateStatus(
+            "正在加载模板..."
+        );
+
+
+        const res =
+            await fetch(
+                "/api/templates/"
+                + encodeURIComponent(
+                    templateId
+                )
+            );
+
+        const data =
+            await res.json();
+
+
+        if(!data.success){
+
+            throw new Error(
+                data.error
+                || "模板加载失败"
+            );
+
+        }
+
+
+        /*
+            如果正在看 Pillow 多页预览，
+            先回到可编辑画布。
+        */
+        if(renderedPreview){
+
+            showEditorCanvas();
+
+        }
+
+
+        /*
+            如果恰好处在布局编辑状态，
+            先结束编辑状态，避免新模板载入后仍显示蓝框。
+        */
+        if(layoutEditing){
+
+            layoutEditing =
+                false;
+
+            document
+                .getElementById(
+                    "previewFrame"
+                )
+                .classList.remove(
+                    "editing"
+                );
+
+            document
+                .getElementById(
+                    "layoutEditBtn"
+                )
+                .textContent =
+                "编辑布局";
+
+        }
+
+
+        const tpl =
+            data.template;
+
+
+        fieldNames.forEach(
+            name => {
+
+                const input =
+                    document.getElementById(
+                        name
+                    );
+
+                if(input){
+
+                    input.value =
+                        (
+                            tpl.fields
+                            &&
+                            tpl.fields[name]
+                            !== undefined
+                        )
+                        ? tpl.fields[name]
+                        : "";
+
+                }
+
+            }
+        );
+
+
+        const editor =
+            getEditor();
+
+        if(
+            tpl.body_html
+            !== undefined
+        ){
+
+            /*
+                body_html 是我们自己保存的本地模板内容。
+                黄色区域及其 data-original-text 会恢复。
+            */
+            editor.innerHTML =
+                tpl.body_html;
+
+        }
+        else{
+
+            editor.textContent =
+                tpl.body_text
+                || "";
+
+        }
+
+
+        applyTemplateUiSettings(
+            tpl.settings
+            || {}
+        );
+
+
+        if(
+            tpl.boxes
+            &&
+            Object.keys(
+                tpl.boxes
+            ).length > 0
+        ){
+
+            savedImageLayout =
+                tpl.boxes;
+
+            applyImagePixelLayout(
+                savedImageLayout
+            );
+
+        }
+
+
+        currentTemplateId =
+            tpl.id;
+
+        currentTemplateName =
+            tpl.name;
+
+
+        invalidateGeneratedTask();
+
+        updateCanvasText();
+
+
+        setTemplateStatus(
+            "已加载模板："
+            + currentTemplateName
+        );
+
+    }
+    catch(e){
+
+        console.error(
+            "模板加载失败",
+            e
+        );
+
+        alert(
+            "模板加载失败："
+            + e.message
+        );
+
+        setTemplateStatus(
+            "模板加载失败"
+        );
+
+    }
+
+}
+
+
+async function saveTemplateRequest(
+    templateId,
+    templateName
+){
+
+    if(layoutEditing){
+
+        alert(
+            "请先点击“完成”保存当前布局"
+        );
+
+        return;
+    }
+
+
+    const name =
+        (
+            templateName
+            || ""
+        ).trim();
+
+    if(!name){
+
+        alert(
+            "模板名称不能为空"
+        );
+
+        return;
+    }
+
+
+    /*
+        多页真实预览状态下，savedImageLayout 已经保存了
+        最后一次完成编辑时的原图像素坐标，不需要切回画布。
+    */
+    const payload =
+        getTemplatePayload(
+            name,
+            templateId
+        );
+
+
+    try{
+
+        setTemplateStatus(
+            "正在保存模板..."
+        );
+
+
+        const res =
+            await fetch(
+                "/api/templates",
+                {
+                    method:"POST",
+
+                    headers:{
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify(
+                            payload
+                        )
+                }
+            );
+
+
+        const data =
+            await res.json();
+
+
+        if(!data.success){
+
+            throw new Error(
+                data.error
+                || "模板保存失败"
+            );
+
+        }
+
+
+        currentTemplateId =
+            data.template.id;
+
+        currentTemplateName =
+            data.template.name;
+
+
+        await loadTemplateList(
+            currentTemplateId,
+            false
+        );
+
+
+        setTemplateStatus(
+            "已保存模板："
+            + currentTemplateName
+        );
+
+    }
+    catch(e){
+
+        console.error(
+            "保存模板失败",
+            e
+        );
+
+        alert(
+            "保存模板失败："
+            + e.message
+        );
+
+        setTemplateStatus(
+            "模板保存失败"
+        );
+
+    }
+
+}
+
+
+async function saveTemplate(){
+
+    let name =
+        currentTemplateName;
+
+
+    if(
+        !currentTemplateId
+        ||
+        !name
+    ){
+
+        name =
+            prompt(
+                "请输入模板名称",
+                ""
+            );
+
+        if(name === null){
+            return;
+        }
+
+    }
+
+
+    await saveTemplateRequest(
+        currentTemplateId,
+        name
+    );
+
+}
+
+
+async function saveTemplateAs(){
+
+    const defaultName =
+        currentTemplateName
+        ? currentTemplateName + " 副本"
+        : "";
+
+
+    const name =
+        prompt(
+            "另存为模板名称",
+            defaultName
+        );
+
+
+    if(name === null){
+        return;
+    }
+
+
+    await saveTemplateRequest(
+        null,
+        name
+    );
+
+}
+
+
+
+async function setDefaultTemplate(){
+
+    const select =
+        document.getElementById(
+            "templateSelect"
+        );
+
+    const templateId =
+        select.value
+        || currentTemplateId;
+
+    if(!templateId){
+
+        alert(
+            "请先选择或保存一个模板"
+        );
+
+        return;
+    }
+
+
+    try{
+
+        setTemplateStatus(
+            "正在设置默认模板..."
+        );
+
+
+        const res =
+            await fetch(
+                "/api/templates/default",
+                {
+                    method:"POST",
+
+                    headers:{
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            id:
+                                templateId
+                        })
+                }
+            );
+
+
+        const data =
+            await res.json();
+
+
+        if(!data.success){
+
+            throw new Error(
+                data.error
+                || "设置默认模板失败"
+            );
+
+        }
+
+
+        defaultTemplateId =
+            templateId;
+
+
+        await loadTemplateList(
+            templateId,
+            false
+        );
+
+
+        const selectedOption =
+            document
+                .getElementById(
+                    "templateSelect"
+                )
+                .selectedOptions[0];
+
+
+        const displayName =
+            currentTemplateId
+            === templateId
+            ? currentTemplateName
+            : (
+                selectedOption
+                ? selectedOption.textContent
+                    .replace(
+                        "（默认）",
+                        ""
+                    )
+                    .trim()
+                : "当前模板"
+            );
+
+
+        setTemplateStatus(
+            "已设为默认模板："
+            + displayName
+        );
+
+    }
+    catch(e){
+
+        console.error(
+            "设置默认模板失败",
+            e
+        );
+
+        alert(
+            "设置默认模板失败："
+            + e.message
+        );
+
+        setTemplateStatus(
+            "设置默认模板失败"
+        );
+
+    }
+
+}
+
+
+async function deleteTemplate(){
+
+    const select =
+        document.getElementById(
+            "templateSelect"
+        );
+
+    const templateId =
+        select.value;
+
+    if(!templateId){
+
+        alert(
+            "请先从下拉框选择要删除的模板"
+        );
+
+        return;
+    }
+
+
+    const option =
+        select.selectedOptions[0];
+
+    const templateName =
+        option
+        ? option.textContent
+            .replace(
+                "（默认）",
+                ""
+            )
+            .trim()
+        : "当前模板";
+
+
+    if(
+        !confirm(
+            "确定删除模板“"
+            + templateName
+            + "”吗？"
+            + "\n\n删除后模板文件会从磁盘移除。"
+            + "\n当前页面里的正文和布局不会被清空。"
+        )
+    ){
+        return;
+    }
+
+
+    try{
+
+        setTemplateStatus(
+            "正在删除模板..."
+        );
+
+
+        const res =
+            await fetch(
+                "/api/templates/"
+                + encodeURIComponent(
+                    templateId
+                ),
+                {
+                    method:"DELETE"
+                }
+            );
+
+
+        const data =
+            await res.json();
+
+
+        if(!data.success){
+
+            throw new Error(
+                data.error
+                || "删除模板失败"
+            );
+
+        }
+
+
+        if(
+            currentTemplateId
+            === templateId
+        ){
+
+            currentTemplateId =
+                null;
+
+            currentTemplateName =
+                "";
+
+        }
+
+
+        if(
+            defaultTemplateId
+            === templateId
+        ){
+
+            defaultTemplateId =
+                null;
+
+        }
+
+
+        await loadTemplateList(
+            null,
+            false
+        );
+
+
+        select.value =
+            "";
+
+
+        setTemplateStatus(
+            "已删除模板："
+            + templateName
+            + "；当前编辑内容仍保留"
+        );
+
+    }
+    catch(e){
+
+        console.error(
+            "删除模板失败",
+            e
+        );
+
+        alert(
+            "删除模板失败："
+            + e.message
+        );
+
+        setTemplateStatus(
+            "删除模板失败"
+        );
+
+    }
+
+}
+
+function newTemplate(){
+
+    if(
+        !confirm(
+            "新建模板会清空病区、姓名、床号、住院号和正文。"
+            + "\n布局、字体和手写设置会保留。"
+            + "\n\n继续吗？"
+        )
+    ){
+        return;
+    }
+
+
+    if(renderedPreview){
+
+        showEditorCanvas();
+
+    }
+
+
+    if(layoutEditing){
+
+        layoutEditing =
+            false;
+
+        document
+            .getElementById(
+                "previewFrame"
+            )
+            .classList.remove(
+                "editing"
+            );
+
+        document
+            .getElementById(
+                "layoutEditBtn"
+            )
+            .textContent =
+            "编辑布局";
+
+    }
+
+
+    fieldNames.forEach(
+        name => {
+
+            const input =
+                document.getElementById(
+                    name
+                );
+
+            if(input){
+                input.value = "";
+            }
+
+        }
+    );
+
+
+    getEditor().innerHTML =
+        "";
+
+
+    currentTemplateId =
+        null;
+
+    currentTemplateName =
+        "";
+
+
+    document
+        .getElementById(
+            "templateSelect"
+        )
+        .value = "";
+
+
+    invalidateGeneratedTask();
+
+    updateCanvasText();
+
+
+    setTemplateStatus(
+        "新模板：布局和文字设置已保留"
+    );
+
+}
+
+
+/* ===============================
+   加载旧的默认 template.json
+   （作为程序首次打开时的基础内容）
+================================ */
+
+async function loadTemplate(){
+
+    try{
+
+        const res =
+            await fetch("/template");
+
+        const data =
+            await res.json();
+
+        if(!data.success){
+            return;
+        }
+
+        if(data.text){
+
+            document
+                .getElementById(
+                    "text_content"
+                )
+                .textContent =
+                data.text;
+
+        }
+
+        fieldNames.forEach(key=>{
+
+            if(
+                data[key] !== undefined
+                &&
+                data[key] !== ""
+            ){
+
+                const el =
+                    document
+                        .getElementById(
+                            key
+                        );
+
+                if(el){
+                    el.value =
+                        data[key];
+                }
+
+            }
 
         });
 
+    }
+    catch(e){
 
-    }catch(e){
+        console.error(
+            "加载模板失败",
+            e
+        );
+
+    }
+
+}
+
+
+/* ===============================
+   字体
+================================ */
+
+async function loadFonts(){
+
+    const select =
+        document.getElementById(
+            "font"
+        );
+
+    try{
+
+        const res =
+            await fetch(
+                "/api/fonts"
+            );
+
+        const data =
+            await res.json();
+
+        if(!data.success){
+
+            select.innerHTML =
+                `<option value="">
+                    字体加载失败
+                </option>`;
+
+            return;
+        }
+
+        select.innerHTML = "";
+
+        if(
+            !data.fonts
+            ||
+            data.fonts.length === 0
+        ){
+
+            select.innerHTML =
+                `<option value="">
+                    没有可用字体
+                </option>`;
+
+            return;
+        }
+
+        data.fonts.forEach(
+            fontName => {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+                option.value =
+                    fontName;
+
+                option.textContent =
+                    fontName;
+
+                if(
+                    fontName
+                    === data.default
+                ){
+                    option.selected =
+                        true;
+                }
+
+                select.appendChild(
+                    option
+                );
+
+            }
+        );
+
+    }
+    catch(e){
 
         console.error(
             "加载字体失败",
             e
         );
 
-        select.innerHTML =
-            `<option value="">字体加载失败</option>`;
-
     }
 
 }
-// ===============================
-// 滑块配置
-// ===============================
+
+
+/* ===============================
+   设置
+================================ */
 
 const settingsConfig = [
 
-    ["font_size","字体大小",8,30,15],
+    [
+        "font_size",
+        "字体大小",
+        8,
+        60,
+        15
+    ],
 
-    ["start_x","起始X坐标",0,500,64],
+    [
+        "line_height",
+        "行间距",
+        10,
+        100,
+        30
+    ],
 
-    ["start_y","起始Y坐标",0,800,661],
+    [
+        "letter_spacing",
+        "字间距",
+        0,
+        20,
+        0
+    ],
 
-    ["line_height","行间距",10,50,30],
+    [
+        "line_jitter",
+        "行抖动",
+        0,
+        10,
+        3
+    ],
 
-    ["line_jitter","行抖动",0,5,3],
-
-    ["char_jitter","字抖动",0,5,2]
+    [
+        "char_jitter",
+        "字抖动",
+        0,
+        10,
+        2
+    ]
 
 ];
 
-// ===============================
-// 字段配置
-// ===============================
 
-const fieldConfig = [
-
-    ["病区",110,694],
-
-    ["姓名",190,694],
-
-    ["床号",280,694],
-
-    ["住院号",450,694]
-
-];
-
-// ===============================
-// 动态生成滑块
-// ===============================
-
-function createsettingsConfig(){
+function createSettingsConfig(){
 
     const textBox =
-        document.getElementById("text");
-
-    const effectBox =
-        document.getElementById("effects");
-
-    settingsConfig.forEach(item=>{
-
-        const html = `
-
-        <div class="form-group">
-
-        <label>${item[1]}</label>
-
-        <div class="slider-container">
-
-        <input
-        type="number"
-        id="${item[0]}"
-        min="${item[2]}"
-        max="${item[3]}"
-        value="${item[4]}"
-        >
-
-
-        </div>
-
-        </div>
-
-        `;
-
-        if(
-            item[0]=="line_jitter"
-            ||
-            item[0]=="char_jitter"
-        ){
-
-            effectBox.innerHTML += html;
-
-        }
-        else{
-
-            textBox.innerHTML += html;
-
-        }
-
-    });
-
-}
-
-// ===============================
-// 动态生成字段位置
-// ===============================
-
-function createFields(){
-    const box =
-    document.getElementById("fields");
-
-    fieldConfig.forEach(item=>{
-        box.innerHTML += `
-        <div class="form-group">
-        <label>${item[0]}位置</label>
-        X:
-        <input
-        type="number"
-        id="${item[0]}_x"
-        value="${item[1]}"
-        >
-        Y:
-        <input
-        type="number"
-        id="${item[0]}_y"
-        value="${item[2]}"
-        >
-        </div>
-        `;
-    });
-}
-
-// ===============================
-// Tab切换
-// ===============================
-
-function switchTab(id,btn){
-
-    document
-    .querySelectorAll(".tab-content")
-    .forEach(
-        x=>x.classList.remove("active")
-    );
-    document
-    .querySelectorAll(".tab-button")
-    .forEach(
-        x=>x.classList.remove("active")
-    );
-    document
-    .getElementById(id)
-    .classList.add("active");
-
-
-    btn.classList.add("active");
-}
-
-// ===============================
-// 获取设置参数
-// ===============================
-
-function getSettings(){
-    let result={};
-
-    settingsConfig.forEach(item=>{
-
-        result[item[0]]
-        =
-        Number(
-            document
-            .getElementById(item[0])
-            .value
+        document.getElementById(
+            "text"
         );
 
-    });
-    result.font =
+    const effectBox =
+        document.getElementById(
+            "effectsSettings"
+        );
+
+    settingsConfig.forEach(
+        item => {
+
+            const html = `
+
+                <div class="form-group">
+
+                    <label>
+                        ${item[1]}
+                    </label>
+
+                    <input
+                        type="number"
+                        id="${item[0]}"
+                        min="${item[2]}"
+                        max="${item[3]}"
+                        value="${item[4]}"
+                    >
+
+                </div>
+
+            `;
+
+            if(
+                item[0] === "line_jitter"
+                ||
+                item[0] === "char_jitter"
+            ){
+
+                effectBox.innerHTML +=
+                    html;
+
+            }
+            else{
+
+                textBox.innerHTML +=
+                    html;
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ===============================
+   Tab
+================================ */
+
+function switchTab(
+    id,
+    btn
+){
+
     document
-    .getElementById("font")
-    .value;
-
-    result.fields={};
-    fieldConfig.forEach(item=>{
-
-
-        result.fields[item[0]]
-        = {
-
-            x:Number(
-                document
-                .getElementById(
-                    item[0]+"_x"
+        .querySelectorAll(
+            ".tab-content"
+        )
+        .forEach(
+            x =>
+                x.classList.remove(
+                    "active"
                 )
-                .value
-            ),
+        );
 
-
-            y:Number(
-                document
-                .getElementById(
-                    item[0]+"_y"
+    document
+        .querySelectorAll(
+            ".tab-button"
+        )
+        .forEach(
+            x =>
+                x.classList.remove(
+                    "active"
                 )
-                .value
-            )
+        );
 
+    document
+        .getElementById(id)
+        .classList.add(
+            "active"
+        );
+
+    btn.classList.add(
+        "active"
+    );
+
+}
+
+
+/* ===============================
+   字段
+================================ */
+
+function getFields(){
+
+    const data = {};
+
+    fieldNames.forEach(
+        name => {
+
+            const el =
+                document.getElementById(
+                    name
+                );
+
+            data[name] =
+                el
+                ? el.value
+                : "";
+
+        }
+    );
+
+    return data;
+
+}
+
+
+/* =========================================================
+   坐标换算
+========================================================= */
+
+function getCanvasScale(){
+
+    const image =
+        document.getElementById(
+            "canvasImage"
+        );
+
+    if(
+        !image.naturalWidth
+        ||
+        !image.clientWidth
+    ){
+        return {
+            x:1,
+            y:1
         };
+    }
+
+    return {
+
+        x:
+            image.naturalWidth
+            / image.clientWidth,
+
+        y:
+            image.naturalHeight
+            / image.clientHeight
+
+    };
+
+}
 
 
-    });
+function getImagePixelLayout(){
 
+    const scale =
+        getCanvasScale();
+
+    const result = {};
+
+    document
+        .querySelectorAll(
+            ".layout-box"
+        )
+        .forEach(
+            box => {
+
+                const name =
+                    box.dataset.box;
+
+                result[name] = {
+
+                    x:
+                        Math.round(
+                            box.offsetLeft
+                            * scale.x
+                        ),
+
+                    y:
+                        Math.round(
+                            box.offsetTop
+                            * scale.y
+                        ),
+
+                    width:
+                        Math.round(
+                            box.offsetWidth
+                            * scale.x
+                        ),
+
+                    height:
+                        Math.round(
+                            box.offsetHeight
+                            * scale.y
+                        )
+
+                };
+
+            }
+        );
 
     return result;
 
 }
 
-// ===============================
-// 获取患者信息
-// ===============================
 
-function getFields(){
+function applyImagePixelLayout(
+    layout
+){
 
-    let data={};
+    if(
+        !layout
+        ||
+        Object.keys(
+            layout
+        ).length === 0
+    ){
+        return;
+    }
 
-    fieldConfig.forEach(item=>{
+    const scale =
+        getCanvasScale();
 
+    Object.entries(
+        layout
+    )
+    .forEach(
+        ([name, config]) => {
 
-        data[item[0]]
-        =
-        document
-        .getElementById(item[0])
-        .value;
+            const box =
+                document.getElementById(
+                    "box_" + name
+                );
 
+            if(!box){
+                return;
+            }
 
-    });
+            box.style.left =
+                (
+                    config.x
+                    / scale.x
+                )
+                + "px";
 
+            box.style.top =
+                (
+                    config.y
+                    / scale.y
+                )
+                + "px";
 
-    return data;
+            box.style.width =
+                (
+                    config.width
+                    / scale.x
+                )
+                + "px";
 
+            box.style.height =
+                (
+                    config.height
+                    / scale.y
+                )
+                + "px";
+
+        }
+    );
 
 }
 
-let currentPdfFilename = null;
-let currentTaskId = null;
 
-// ===============================
-// PDF预览
-// ===============================
+/* ===============================
+   初始布局
+================================ */
+
+const initialBoxLayoutRatio = {
+
+    "病区":{
+        x:0.11,
+        y:0.202,
+        width:0.16,
+        height:0.035
+    },
+
+    "姓名":{
+        x:0.30,
+        y:0.202,
+        width:0.14,
+        height:0.035
+    },
+
+    "床号":{
+        x:0.47,
+        y:0.202,
+        width:0.11,
+        height:0.035
+    },
+
+    "住院号":{
+        x:0.72,
+        y:0.202,
+        width:0.19,
+        height:0.035
+    },
+
+    "正文":{
+        x:0.10,
+        y:0.235,
+        width:0.81,
+        height:0.70
+    }
+
+};
+
+
+function createInitialImageLayout(){
+
+    const image =
+        document.getElementById(
+            "canvasImage"
+        );
+
+    const result = {};
+
+    Object.entries(
+        initialBoxLayoutRatio
+    )
+    .forEach(
+        ([name, config]) => {
+
+            result[name] = {
+
+                x:
+                    Math.round(
+                        image.naturalWidth
+                        * config.x
+                    ),
+
+                y:
+                    Math.round(
+                        image.naturalHeight
+                        * config.y
+                    ),
+
+                width:
+                    Math.round(
+                        image.naturalWidth
+                        * config.width
+                    ),
+
+                height:
+                    Math.round(
+                        image.naturalHeight
+                        * config.height
+                    )
+
+            };
+
+        }
+    );
+
+    return result;
+
+}
+
+
+/* =========================================================
+   编辑器 / 多页预览切换
+========================================================= */
+
+function showEditorCanvas(){
+
+    const stage =
+        document.getElementById(
+            "previewFrame"
+        );
+
+    const pages =
+        document.getElementById(
+            "renderedPages"
+        );
+
+    stage.style.display =
+        "block";
+
+    pages.classList.remove(
+        "active"
+    );
+
+    renderedPreview =
+        false;
+
+    applyImagePixelLayout(
+        savedImageLayout
+    );
+
+    updateCanvasText();
+
+}
+
+
+function showRenderedPages(
+    previewUrls
+){
+
+    const stage =
+        document.getElementById(
+            "previewFrame"
+        );
+
+    const pages =
+        document.getElementById(
+            "renderedPages"
+        );
+
+    pages.innerHTML = "";
+
+    previewUrls.forEach(
+        (url, index) => {
+
+            const wrapper =
+                document.createElement(
+                    "div"
+                );
+
+            wrapper.className =
+                "rendered-page";
+
+
+            const label =
+                document.createElement(
+                    "div"
+                );
+
+            label.className =
+                "rendered-page-label";
+
+            label.textContent =
+                `第 ${index + 1} 页`;
+
+
+            const img =
+                document.createElement(
+                    "img"
+                );
+
+            img.src =
+                url
+                + "?t="
+                + Date.now();
+
+            img.alt =
+                `第 ${index + 1} 页`;
+
+
+            wrapper.appendChild(
+                label
+            );
+
+            wrapper.appendChild(
+                img
+            );
+
+            pages.appendChild(
+                wrapper
+            );
+
+        }
+    );
+
+
+    stage.style.display =
+        "none";
+
+    pages.classList.add(
+        "active"
+    );
+
+    renderedPreview =
+        true;
+
+}
+
+
+/* =========================================================
+   编辑 / 完成
+========================================================= */
+
+function toggleLayoutEdit(){
+
+    const stage =
+        document.getElementById(
+            "previewFrame"
+        );
+
+    const button =
+        document.getElementById(
+            "layoutEditBtn"
+        );
+
+
+    if(
+        !layoutEditing
+        &&
+        renderedPreview
+    ){
+        showEditorCanvas();
+    }
+
+
+    layoutEditing =
+        !layoutEditing;
+
+
+    if(layoutEditing){
+
+        invalidateGeneratedTask();
+
+        stage.classList.add(
+            "editing"
+        );
+
+        button.textContent =
+            "完成";
+
+    }
+    else{
+
+        stage.classList.remove(
+            "editing"
+        );
+
+        document
+            .querySelectorAll(
+                ".layout-box"
+            )
+            .forEach(
+                item =>
+                    item.classList.remove(
+                        "active"
+                    )
+            );
+
+        button.textContent =
+            "编辑布局";
+
+        savedImageLayout =
+            getImagePixelLayout();
+
+        console.log(
+            "已保存原图像素布局：",
+            savedImageLayout
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   拖动
+========================================================= */
+
+function enableBoxDrag(
+    box
+){
+
+    let dragging = false;
+
+    let startMouseX = 0;
+    let startMouseY = 0;
+
+    let startBoxX = 0;
+    let startBoxY = 0;
+
+
+    box.addEventListener(
+        "pointerdown",
+        function(e){
+
+            if(!layoutEditing){
+                return;
+            }
+
+            if(
+                e.target
+                    .classList
+                    .contains(
+                        "resize-handle"
+                    )
+            ){
+                return;
+            }
+
+            dragging = true;
+
+            box.setPointerCapture(
+                e.pointerId
+            );
+
+            startMouseX =
+                e.clientX;
+
+            startMouseY =
+                e.clientY;
+
+            startBoxX =
+                box.offsetLeft;
+
+            startBoxY =
+                box.offsetTop;
+
+
+            document
+                .querySelectorAll(
+                    ".layout-box"
+                )
+                .forEach(
+                    item =>
+                        item.classList.remove(
+                            "active"
+                        )
+                );
+
+            box.classList.add(
+                "active"
+            );
+
+        }
+    );
+
+
+    box.addEventListener(
+        "pointermove",
+        function(e){
+
+            if(!dragging){
+                return;
+            }
+
+            const stage =
+                document.getElementById(
+                    "previewFrame"
+                );
+
+            const dx =
+                e.clientX
+                - startMouseX;
+
+            const dy =
+                e.clientY
+                - startMouseY;
+
+            let newX =
+                startBoxX
+                + dx;
+
+            let newY =
+                startBoxY
+                + dy;
+
+            newX =
+                Math.max(
+                    0,
+                    Math.min(
+                        newX,
+                        stage.clientWidth
+                        - box.offsetWidth
+                    )
+                );
+
+            newY =
+                Math.max(
+                    0,
+                    Math.min(
+                        newY,
+                        stage.clientHeight
+                        - box.offsetHeight
+                    )
+                );
+
+            box.style.left =
+                newX + "px";
+
+            box.style.top =
+                newY + "px";
+
+        }
+    );
+
+
+    function finishDrag(){
+
+        if(!dragging){
+            return;
+        }
+
+        dragging = false;
+
+        savedImageLayout =
+            getImagePixelLayout();
+
+    }
+
+
+    box.addEventListener(
+        "pointerup",
+        finishDrag
+    );
+
+    box.addEventListener(
+        "pointercancel",
+        finishDrag
+    );
+
+}
+
+
+/* =========================================================
+   缩放
+========================================================= */
+
+function enableBoxResize(
+    box
+){
+
+    const handle =
+        box.querySelector(
+            ".resize-handle"
+        );
+
+    if(!handle){
+        return;
+    }
+
+    let resizing = false;
+
+    let startMouseX = 0;
+    let startMouseY = 0;
+
+    let startWidth = 0;
+    let startHeight = 0;
+
+
+    handle.addEventListener(
+        "pointerdown",
+        function(e){
+
+            if(!layoutEditing){
+                return;
+            }
+
+            e.stopPropagation();
+
+            resizing = true;
+
+            handle.setPointerCapture(
+                e.pointerId
+            );
+
+            startMouseX =
+                e.clientX;
+
+            startMouseY =
+                e.clientY;
+
+            startWidth =
+                box.offsetWidth;
+
+            startHeight =
+                box.offsetHeight;
+
+        }
+    );
+
+
+    handle.addEventListener(
+        "pointermove",
+        function(e){
+
+            if(!resizing){
+                return;
+            }
+
+            const stage =
+                document.getElementById(
+                    "previewFrame"
+                );
+
+            const dx =
+                e.clientX
+                - startMouseX;
+
+            const dy =
+                e.clientY
+                - startMouseY;
+
+            let newWidth =
+                startWidth
+                + dx;
+
+            let newHeight =
+                startHeight
+                + dy;
+
+            newWidth =
+                Math.max(
+                    40,
+                    Math.min(
+                        newWidth,
+                        stage.clientWidth
+                        - box.offsetLeft
+                    )
+                );
+
+            newHeight =
+                Math.max(
+                    30,
+                    Math.min(
+                        newHeight,
+                        stage.clientHeight
+                        - box.offsetTop
+                    )
+                );
+
+            box.style.width =
+                newWidth + "px";
+
+            box.style.height =
+                newHeight + "px";
+
+        }
+    );
+
+
+    function finishResize(){
+
+        if(!resizing){
+            return;
+        }
+
+        resizing = false;
+
+        savedImageLayout =
+            getImagePixelLayout();
+
+    }
+
+
+    handle.addEventListener(
+        "pointerup",
+        finishResize
+    );
+
+    handle.addEventListener(
+        "pointercancel",
+        finishResize
+    );
+
+}
+
+
+function initLayoutBoxes(){
+
+    document
+        .querySelectorAll(
+            ".layout-box"
+        )
+        .forEach(
+            box => {
+
+                enableBoxDrag(
+                    box
+                );
+
+                enableBoxResize(
+                    box
+                );
+
+            }
+        );
+
+}
+
+
+/* =========================================================
+   前端即时文字
+========================================================= */
+
+function updateCanvasText(){
+
+    fieldNames.forEach(
+        name => {
+
+            const input =
+                document.getElementById(
+                    name
+                );
+
+            const text =
+                document.querySelector(
+                    "#box_"
+                    + name
+                    + " .box-text"
+                );
+
+            if(
+                input
+                &&
+                text
+            ){
+
+                text.textContent =
+                    input.value
+                    || name;
+
+            }
+
+        }
+    );
+
+
+    const textarea =
+        document.getElementById(
+            "text_content"
+        );
+
+    const bodyText =
+        document.querySelector(
+            "#box_正文 .box-text"
+        );
+
+    if(
+        textarea
+        &&
+        bodyText
+    ){
+
+        bodyText.textContent =
+            getEditorPlainText()
+            || "正文区域";
+
+    }
+
+    applyPreviewTextSettings();
+
+}
+
+
+function applyPreviewTextSettings(){
+
+    const fontSize =
+        Number(
+            document
+                .getElementById(
+                    "font_size"
+                )
+                .value
+        );
+
+    const lineHeight =
+        Number(
+            document
+                .getElementById(
+                    "line_height"
+                )
+                .value
+        );
+
+    const letterSpacing =
+        Number(
+            document
+                .getElementById(
+                    "letter_spacing"
+                )
+                .value
+        );
+
+
+    document
+        .querySelectorAll(
+            ".box-text"
+        )
+        .forEach(
+            element => {
+
+                element.style.fontSize =
+                    Math.max(
+                        8,
+                        fontSize
+                    )
+                    + "px";
+
+                element.style.letterSpacing =
+                    letterSpacing
+                    + "px";
+
+            }
+        );
+
+
+    const bodyText =
+        document.querySelector(
+            "#box_正文 .box-text"
+        );
+
+    if(bodyText){
+
+        bodyText.style.lineHeight =
+            Math.max(
+                10,
+                lineHeight
+            )
+            + "px";
+
+    }
+
+}
+
+
+/* =========================================================
+   原图像素设置
+========================================================= */
+
+function getRenderSettings(){
+
+    const scale =
+        getCanvasScale();
+
+    return {
+
+        font:
+            document
+                .getElementById(
+                    "font"
+                )
+                .value,
+
+        font_size:
+            Math.max(
+                1,
+                Math.round(
+                    Number(
+                        document
+                            .getElementById(
+                                "font_size"
+                            )
+                            .value
+                    )
+                    * scale.y
+                )
+            ),
+
+        line_height:
+            Math.max(
+                1,
+                Math.round(
+                    Number(
+                        document
+                            .getElementById(
+                                "line_height"
+                            )
+                            .value
+                    )
+                    * scale.y
+                )
+            ),
+
+        letter_spacing:
+            Number(
+                document
+                    .getElementById(
+                        "letter_spacing"
+                    )
+                    .value
+            )
+            * scale.x,
+
+        line_jitter:
+            Number(
+                document
+                    .getElementById(
+                        "line_jitter"
+                    )
+                    .value
+            )
+            * scale.y,
+
+        char_jitter:
+            Number(
+                document
+                    .getElementById(
+                        "char_jitter"
+                    )
+                    .value
+            )
+            * scale.x
+
+    };
+
+}
+
+
+/* =========================================================
+   Pillow 多页预览
+========================================================= */
 
 async function generatePreview(){
 
+    if(layoutEditing){
+
+        alert(
+            "请先点击“完成”保存当前布局"
+        );
+
+        return;
+    }
 
 
     const text =
-    document.getElementById(
-        "text_content"
-    ).value;
-
-
+        getEditorPlainText();
 
     if(!text){
 
@@ -636,112 +3549,358 @@ async function generatePreview(){
         );
 
         return;
-
     }
 
 
-
-    const res =
-    await fetch(
-        "/preview",
-        {
-
-        method:"POST",
-
-        headers:{
-            "Content-Type":
-            "application/json"
-        },
+    /*
+        如果当前正在显示真实预览，
+        先回到编辑画布读取正确的缩放比例。
+    */
+    if(renderedPreview){
+        showEditorCanvas();
+    }
 
 
-        body:JSON.stringify({
-
-            text:text,
-
-            fields:getFields(),
-
-            settings:getSettings()
-
-        })
+    savedImageLayout =
+        getImagePixelLayout();
 
 
-    });
+    const previewButton =
+        document.getElementById(
+            "previewBtn"
+        );
 
-    const data =
-    await res.json();
+    previewButton.disabled =
+        true;
+
+    previewButton.textContent =
+        "生成中...";
 
 
+    try{
 
-    if(data.success){
+        const res =
+            await fetch(
+                "/preview_image",
+                {
+                    method:"POST",
+
+                    headers:{
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            text:text,
+
+                            fields:
+                                getFields(),
+
+                            boxes:
+                                savedImageLayout,
+
+                            settings:
+                                getRenderSettings()
+
+                        })
+
+                }
+            );
 
 
-        currentPdfFilename =
-        data.preview_url
-        .split("/")
-        .pop();
+        const data =
+            await res.json();
+
+
+        if(!data.success){
+
+            alert(
+                data.error
+                || "图片生成失败"
+            );
+
+            return;
+        }
+
+
         currentTaskId =
-        data.task_id;
+            data.task_id;
+
+        currentPageCount =
+            data.page_count;
 
 
         document
-        .getElementById(
-            "previewFrame"
-        )
-        .src =
-        data.preview_url
-        +
-        "?t="
-        +
-        Date.now();
+            .getElementById(
+                "downloadAllImages"
+            )
+            .disabled = false;
 
 
+        showRenderedPages(
+            data.preview_urls
+        );
 
-        document
-        .getElementById(
-            "downloadAllImages"
-        )
-        .disabled=false;
 
+        console.log(
+            `已生成 ${data.page_count} 页`,
+            data
+        );
 
     }
+    catch(e){
 
+        console.error(e);
 
+        alert(
+            "请求图片预览失败："
+            + e
+        );
+
+    }
+    finally{
+
+        previewButton.disabled =
+            false;
+
+        previewButton.textContent =
+            "预览生成效果";
+
+    }
 
 }
 
-// ===============================
-// 下载JPG ZIP
-// ===============================
+
+/* ===============================
+   下载 JPG ZIP
+================================ */
 
 function downloadAllImages(){
 
-    if(!currentPdfFilename || !currentTaskId){
+    if(!currentTaskId){
 
         alert(
-            "请先生成PDF"
+            "请先生成图片预览"
         );
 
         return;
     }
 
-
     window.location.href =
-    `/download_images/${currentTaskId}/${currentPdfFilename}`;
+        "/download_images/"
+        + encodeURIComponent(
+            currentTaskId
+        );
+
 }
 
 
+/* ===============================
+   输入绑定
+================================ */
 
-// ===============================
-// 初始化
-// ===============================
-window.addEventListener("DOMContentLoaded", loadTemplate);
-createsettingsConfig();
+function bindCanvasInputs(){
 
-createFields();
-loadFonts();
+    [
+        "病区",
+        "姓名",
+        "床号",
+        "住院号",
+        "text_content"
+    ]
+    .forEach(
+        id => {
+
+            const element =
+                document.getElementById(
+                    id
+                );
+
+            if(!element){
+                return;
+            }
+
+            element.addEventListener(
+                "input",
+                function(){
+
+                    invalidateGeneratedTask();
+
+                    updateCanvasText();
+
+                }
+            );
+
+        }
+    );
 
 
+    [
+        "font_size",
+        "line_height",
+        "letter_spacing"
+    ]
+    .forEach(
+        id => {
 
+            const element =
+                document.getElementById(
+                    id
+                );
+
+            if(!element){
+                return;
+            }
+
+            element.addEventListener(
+                "input",
+                function(){
+
+                    invalidateGeneratedTask();
+
+                    applyPreviewTextSettings();
+
+                }
+            );
+
+        }
+    );
+
+}
+
+
+/* ===============================
+   浏览器尺寸变化
+================================ */
+
+window.addEventListener(
+    "resize",
+    function(){
+
+        if(
+            !renderedPreview
+            &&
+            Object.keys(
+                savedImageLayout
+            ).length > 0
+        ){
+
+            applyImagePixelLayout(
+                savedImageLayout
+            );
+
+        }
+
+    }
+);
+
+
+/* ===============================
+   初始化
+================================ */
+
+createSettingsConfig();
+
+
+window.addEventListener(
+    "DOMContentLoaded",
+    async function(){
+
+        await loadTemplate();
+
+        await loadFonts();
+
+        const canvasImage =
+            document.getElementById(
+                "canvasImage"
+            );
+
+        let initialized =
+            false;
+
+
+        async function initializeEditor(){
+
+            if(initialized){
+                return;
+            }
+
+            initialized =
+                true;
+
+            savedImageLayout =
+                createInitialImageLayout();
+
+            applyImagePixelLayout(
+                savedImageLayout
+            );
+
+            initLayoutBoxes();
+
+            initTemplateEditor();
+
+            bindCanvasInputs();
+
+            updateCanvasText();
+
+            await loadTemplateList(
+                null,
+                true
+            );
+                // 模板加载完以后，直接生成真正的 Pillow 手写图片
+            if(
+                getEditorPlainText()
+                    .trim()
+            ){
+                await generatePreview();
+            }
+
+            console.log(
+                "base.jpg 原始尺寸：",
+                {
+                    width:
+                        canvasImage
+                            .naturalWidth,
+
+                    height:
+                        canvasImage
+                            .naturalHeight
+                }
+            );
+
+            console.log(
+                "初始原图像素布局：",
+                savedImageLayout
+            );
+
+        }
+
+
+        if(
+            canvasImage.complete
+            &&
+            canvasImage.naturalWidth > 0
+        ){
+
+            initializeEditor();
+
+        }
+        else{
+
+            canvasImage.addEventListener(
+                "load",
+                initializeEditor,
+                {
+                    once:true
+                }
+            );
+
+        }
+
+    }
+);
 
 </script>
 
