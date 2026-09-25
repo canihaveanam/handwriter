@@ -20,7 +20,6 @@ import gc
 
 
 
-from io import BytesIO
 
 from flask import (
 
@@ -508,46 +507,57 @@ def download_generated_images(task_id):
 
     name = safe_filename_part(info.get("name", "未知"))
     patient_id = safe_filename_part(info.get("patient_id", "未知"))
-
-    # 预览时已经生成最终 JPG，这里直接打包，不再重新编码图片。
-    zip_buffer = BytesIO()
-    written_count = 0
-
-    with zipfile.ZipFile(
-        zip_buffer,
-        "w",
-        compression=zipfile.ZIP_STORED,
-    ) as zip_file:
-        for page_index, path in enumerate(image_paths, start=1):
-            if not os.path.isfile(path):
-                continue
-
-            jpg_name = f"{name}-{page_index}-{patient_id}.jpg"
-            zip_file.write(path, arcname=jpg_name)
-            written_count += 1
-
-    if written_count == 0:
-        cleanup_task(task_id)
-        return "图片文件已失效，请重新生成预览", 404
-
-    zip_buffer.seek(0)
     zip_name = f"{name}-{patient_id}.zip"
 
-    write_log(
-        "下载zip图片包",
-        request.remote_addr,
-        zip_name,
+    # ZIP 直接写到系统临时目录，避免整包驻留在 Python 内存中。
+    zip_path = os.path.join(
+        tempfile.gettempdir(),
+        f"handwriter_{task_id}.zip",
     )
 
-    # ZIP 已经完整写入内存，可以删除本任务的临时 JPG。
-    cleanup_task(task_id)
+    # 避免旧的同名 ZIP 干扰。
+    remove_temp_file(zip_path)
 
-    return send_file(
-        zip_buffer,
-        mimetype="application/zip",
-        as_attachment=True,
-        download_name=zip_name,
-    )
+    written_count = 0
+
+    try:
+        with zipfile.ZipFile(
+            zip_path,
+            "w",
+            compression=zipfile.ZIP_STORED,
+        ) as zip_file:
+            for page_index, path in enumerate(image_paths, start=1):
+                if not os.path.isfile(path):
+                    continue
+
+                jpg_name = f"{name}-{page_index}-{patient_id}.jpg"
+                zip_file.write(path, arcname=jpg_name)
+                written_count += 1
+
+        if written_count == 0:
+            remove_temp_file(zip_path)
+            cleanup_task(task_id)
+            return "图片文件已失效，请重新生成预览", 404
+
+        # 记录 ZIP 路径，供超时清理时删除。
+        info["zip_path"] = zip_path
+
+        write_log(
+            "下载zip图片包",
+            request.remote_addr,
+            zip_name,
+        )
+
+        return send_file(
+            zip_path,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name=zip_name,
+        )
+
+    except Exception:
+        remove_temp_file(zip_path)
+        raise
 
 
 if __name__ == "__main__":

@@ -49,15 +49,18 @@ def build_app():
     # 检查必要文件
 
     required_files = [
-        "app.py",
-        "base.jpg",
-        "index.html",
-        "template.json",
-        "font_manager.py"
+    "app.py",
+    "base.jpg",
+    "index.html",
+    "template_settings.json",
+    "font_manager.py",
+    "image_generator.py",
+    "template_manager.py",
     ]
 
     required_dirs = [
-        "fonts"
+    "fonts",
+    "templates",
     ]
 
 
@@ -117,58 +120,42 @@ def build_app():
     # PyInstaller命令
 
     cmd = [
+    sys.executable,
+    "-m",
+    "PyInstaller",
 
-        sys.executable,
+    "app.py",
 
-        "-m",
+    # 先用 onedir，打包快、启动快、方便排错
+    "--onedir",
 
-        "PyInstaller",
+    "--name",
+    "HandWriter",
 
+    # 前端
+    "--add-data",
+    "index.html;.",
 
-        "app.py",
+    # 底图
+    "--add-data",
+    "base.jpg;.",
 
+    # 字体
+    "--add-data",
+    "fonts;fonts",
 
-        # 单文件
-        "--onefile",
+    # 模板
+    "--add-data",
+    "templates;templates",
 
+    # 模板配置
+    "--add-data",
+    "template_settings.json;.",
 
-        # 程序名字
-        "--name",
-        "HandWriter",
-
-
-        # 资源文件
-
-        "--add-data",
-        "base.jpg;.",
-
-
-        "--add-data",
-        "index.html;.",
-
-
-
-        # 字体目录
-
-        "--add-data",
-        "fonts;fonts",
-
-
-        # 清理缓存
-
-        "--clean",
-
-
-        # 自动覆盖
-
-        "--noconfirm",
-
-
-        # 调试阶段先关闭
-        # 测试成功后打开
-        #
-        "--noconsole",
-
+    "--clean",
+    "--noconfirm",
+    # 不显示黑色终端
+    "--noconsole",
     ]
 
 
