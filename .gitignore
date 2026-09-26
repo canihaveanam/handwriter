@@ -215,6 +215,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Project local tools / tests
+ # Project local tools / tests
 test/
 build_tools/

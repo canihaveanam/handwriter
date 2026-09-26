@@ -184,6 +184,7 @@ def build_app():
 
         exe_path = os.path.join(
             "dist",
+            "HandWriter",
             "HandWriter.exe"
         )
 
