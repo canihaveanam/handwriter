@@ -1,0 +1,433 @@
+body{
+    font-family:Arial,sans-serif;
+    margin:0;
+    padding:20px;
+    background:#f5f5f5;
+}
+
+.container{
+    display:flex;
+    gap:20px;
+    max-width:1400px;
+    margin:auto;
+}
+
+.panel{
+    background:white;
+    padding:20px;
+    border-radius:8px;
+    box-shadow:0 2px 10px rgba(0,0,0,.1);
+    box-sizing:border-box;
+}
+
+.control-panel{
+    flex:1;
+    min-width:0;
+}
+
+.preview-panel{
+    flex:1;
+    min-width:0;
+}
+
+.patient-info{
+    display:grid;
+    grid-template-columns:
+        auto 1fr
+        auto 1fr
+        auto 70px
+        auto 1.2fr;
+    gap:8px;
+    align-items:center;
+}
+
+.patient-info label{
+    margin:0;
+    font-size:13px;
+}
+
+.patient-info input{
+    height:32px;
+    padding:5px 8px;
+}
+
+.form-group{
+    margin-bottom:12px;
+}
+
+label{
+    display:block;
+    margin-bottom:5px;
+    font-weight:bold;
+    color:#333;
+}
+
+input,
+textarea,
+select{
+    width:100%;
+    padding:8px;
+    border:1px solid #ddd;
+    border-radius:4px;
+    box-sizing:border-box;
+}
+
+#text_content{
+    width:100%;
+    height:650px;
+    padding:8px;
+    border:1px solid #ddd;
+    border-radius:4px;
+    box-sizing:border-box;
+    overflow:auto;
+    white-space:pre-wrap;
+    overflow-wrap:anywhere;
+    outline:none;
+    background:white;
+    line-height:1.6;
+}
+
+#text_content:focus{
+    border-color:#007cba;
+    box-shadow:0 0 0 2px rgba(0,124,186,.12);
+}
+
+#text_content:empty::before{
+    content:attr(data-placeholder);
+    color:#999;
+    pointer-events:none;
+}
+
+.text-editor-toolbar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:6px;
+}
+
+.text-editor-toolbar label{
+    margin:0;
+}
+
+.mark-button{
+    margin:0 0 0 auto;
+    padding:6px 14px;
+    background:#f0ad00;
+    color:#222;
+}
+
+.mark-button:hover{
+    background:#d99c00;
+}
+
+.template-slot{
+    background:#fff08a;
+    border-radius:3px;
+    padding:1px 2px;
+    box-decoration-break:clone;
+    -webkit-box-decoration-break:clone;
+    cursor:text;
+}
+
+
+input[type=number]{
+    width:100%;
+}
+
+button{
+    background:#007cba;
+    color:white;
+    padding:10px 20px;
+    border:none;
+    border-radius:4px;
+    cursor:pointer;
+    margin:5px;
+}
+
+button:hover{
+    background:#005a87;
+}
+
+button:disabled{
+    opacity:.5;
+    cursor:not-allowed;
+}
+
+.tab-buttons{
+    display:flex;
+    border-bottom:1px solid #ddd;
+    margin-bottom:10px;
+}
+
+.tab-button{
+    padding:10px 20px;
+    cursor:pointer;
+    border:none;
+    background:#eee;
+    color:#333;
+    border-radius:4px 4px 0 0;
+    margin:0 2px 0 0;
+}
+
+.tab-button:hover{
+    background:#ddd;
+}
+
+.tab-button.active{
+    background:#007cba;
+    color:white;
+}
+
+.tab-content{
+    display:none;
+}
+
+.tab-content.active{
+    display:block;
+}
+
+.action-bar{
+    margin-top:10px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:4px;
+}
+
+
+/* =========================================
+   自定义背景
+========================================= */
+
+.background-manager{
+    margin:12px 0;
+    padding:12px;
+    background:#f7f7f7;
+    border:1px solid #e2e2e2;
+    border-radius:6px;
+}
+
+.background-source-row{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    flex-wrap:wrap;
+    margin-bottom:8px;
+}
+
+.background-source-row label{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    margin:0;
+    font-weight:normal;
+}
+
+.background-source-row input[type=radio]{
+    width:auto;
+}
+
+.background-upload-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+}
+
+.background-upload-row input[type=file]{
+    width:auto;
+    max-width:100%;
+}
+
+.background-status{
+    min-height:18px;
+    margin-top:6px;
+    color:#666;
+    font-size:12px;
+}
+
+.template-manager{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+    margin:18px 0 0 0;
+    padding:12px;
+    background:#f7f7f7;
+    border:1px solid #e2e2e2;
+    border-radius:6px;
+}
+
+.template-manager-title{
+    width:100%;
+    padding-bottom:8px;
+    margin-bottom:2px;
+    border-bottom:1px solid #e2e2e2;
+    font-weight:bold;
+    color:#333;
+}
+
+.template-manager label{
+    margin:0;
+    white-space:nowrap;
+}
+
+.template-manager select{
+    flex:1 1 220px;
+    min-width:180px;
+}
+
+.template-manager button{
+    margin:0;
+    padding:8px 12px;
+}
+
+.template-manager .danger-button{
+    background:#c94a4a;
+}
+
+.template-manager .danger-button:hover{
+    background:#a93636;
+}
+
+.template-status{
+    width:100%;
+    min-height:18px;
+    margin-top:2px;
+    color:#666;
+    font-size:12px;
+}
+
+/* =========================================
+   编辑画布
+========================================= */
+
+.canvas-viewport{
+    width:100%;
+    height:650px;
+    overflow:auto;
+    padding:10px;
+    background:#ddd;
+    border:1px solid #ccc;
+    box-sizing:border-box;
+}
+
+.canvas-stage{
+    position:relative;
+    width:100%;
+    display:block;
+    user-select:none;
+    background:white;
+}
+
+#canvasImage{
+    display:block;
+    width:100%;
+    height:auto;
+    pointer-events:none;
+    user-select:none;
+}
+
+.layout-box{
+    position:absolute;
+    box-sizing:border-box;
+    overflow:hidden;
+    border:2px solid transparent;
+    background:transparent;
+    pointer-events:none;
+    touch-action:none;
+}
+
+.box-text{
+    width:100%;
+    height:100%;
+    padding:2px;
+    box-sizing:border-box;
+    overflow:hidden;
+    color:#111;
+    font-size:14px;
+    line-height:1.5;
+    pointer-events:none;
+}
+
+.field-layout-box .box-text{
+    white-space:nowrap;
+}
+
+.body-layout-box .box-text{
+    white-space:pre-wrap;
+}
+
+.canvas-stage.editing .layout-box{
+    border:2px dashed #007cba;
+    background:rgba(0,124,186,.06);
+    cursor:move;
+    pointer-events:auto;
+}
+
+.canvas-stage.editing .layout-box.active{
+    border-style:solid;
+    box-shadow:0 0 0 2px rgba(0,124,186,.15);
+}
+
+.resize-handle{
+    display:none;
+    position:absolute;
+    width:14px;
+    height:14px;
+    right:0;
+    bottom:0;
+    background:#007cba;
+    cursor:nwse-resize;
+    z-index:10;
+}
+
+.canvas-stage.editing .resize-handle{
+    display:block;
+}
+
+/* =========================================
+   Pillow 多页真实预览
+========================================= */
+
+.rendered-pages{
+    display:none;
+}
+
+.rendered-pages.active{
+    display:block;
+}
+
+.rendered-page{
+    margin:0 0 18px 0;
+}
+
+.rendered-page-label{
+    margin:0 0 6px 0;
+    font-size:13px;
+    font-weight:bold;
+    color:#555;
+}
+
+.rendered-page img{
+    display:block;
+    width:100%;
+    height:auto;
+    background:white;
+    box-shadow:0 1px 6px rgba(0,0,0,.15);
+}
+
+.editor-hint{
+    margin:8px 0 0;
+    color:#666;
+    font-size:12px;
+}
+
+@media(max-width:1000px){
+    .container{
+        flex-direction:column;
+    }
+
+    .patient-info{
+        grid-template-columns:auto 1fr auto 1fr;
+    }
+}
